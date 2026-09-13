@@ -6348,12 +6348,45 @@ function markTurnActions(root) {
   for (let i = 0; i < buttons.length; i++) markTurnActionBar(buttons[i]);
 }
 
+const SEARCH_ROW_SELECTOR = '.flex.items-center.gap-1.overflow-hidden.text-sm.group';
+
+function sanitizeSearchWildcardRow(row) {
+  if (!row) return;
+  const label = row.firstElementChild;
+  if (!label || !label.classList?.contains('text-secondary-foreground')) return;
+  const text = label.textContent?.trim();
+  if (text !== 'Searched' && text !== 'Searching') return;
+  const querySpan = label.nextElementSibling;
+  if (!querySpan || !querySpan.classList?.contains('overflow-hidden')) return;
+  const query = querySpan.textContent?.trim();
+  if (query === '*' || query === '**/*' || query === '"*"' || query === "'*'") {
+    if (querySpan.getAttribute('data-gemini-wildcard') !== 'true') {
+      querySpan.setAttribute('data-gemini-wildcard', 'true');
+    }
+  } else if (querySpan.hasAttribute('data-gemini-wildcard')) {
+    querySpan.removeAttribute('data-gemini-wildcard');
+  }
+}
+
+function sanitizeSearchWildcards(root) {
+  if (!root || root.nodeType !== Node.ELEMENT_NODE) return;
+  if (root.matches?.(SEARCH_ROW_SELECTOR)) sanitizeSearchWildcardRow(root);
+  const rows = root.querySelectorAll(SEARCH_ROW_SELECTOR);
+  for (let i = 0; i < rows.length; i++) sanitizeSearchWildcardRow(rows[i]);
+}
+
+plugin.dom.observe(SEARCH_ROW_SELECTOR, (row) => {
+  sanitizeSearchWildcardRow(row);
+  const obs = new MutationObserver(() => sanitizeSearchWildcardRow(row));
+  obs.observe(row, { childList: true, characterData: true, subtree: true });
+  remember(row, { disconnect: () => obs.disconnect() });
+});
 
 /*
  * What the two passes above actually read: a turn, one of the view's scrollers,
  * and the action bar that lands when a turn finishes.
  */
-const TURN_LANDMARKS = '[role="article"], [data-testid="user-input-step"], .overflow-y-auto, button[aria-label="Good response"], button[aria-label="Copy"]';
+const TURN_LANDMARKS = '[role="article"], [data-testid="user-input-step"], .overflow-y-auto, button[aria-label="Good response"], button[aria-label="Copy"], .flex.items-center.gap-1.overflow-hidden.text-sm.group';
 
 /*
  * A streaming reply changes this subtree continuously — every word arriving is a
@@ -6372,6 +6405,7 @@ function scanTurnMutations(records) {
     for (const node of record.addedNodes) {
       if (node.nodeType !== Node.ELEMENT_NODE) continue;
       markTurnActions(node);
+      sanitizeSearchWildcards(node);
       if (!touched && (node.matches(TURN_LANDMARKS) || node.querySelector(TURN_LANDMARKS))) touched = true;
     }
     if (touched) continue;
@@ -6393,6 +6427,7 @@ plugin.dom.observe(CONV_VIEW_SELECTOR, (view) => {
   applyConversationScrollbar(view);
   updateTurnFooters(view);
   markTurnActions(view);
+  sanitizeSearchWildcards(view);
   let convRafId = null;
   let lastPass = performance.now();
   const scheduleUpdate = () => {
@@ -6407,6 +6442,7 @@ plugin.dom.observe(CONV_VIEW_SELECTOR, (view) => {
       applyConversationScrollbar(view);
       updateTurnFooters(view);
       markTurnActions(view);
+      sanitizeSearchWildcards(view);
     });
   };
   const obs = new MutationObserver((records) => {

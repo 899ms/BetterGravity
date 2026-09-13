@@ -1812,3 +1812,8 @@ div:has(> .flex.items-center.whitespace-nowrap.overflow-hidden.min-w-0):not(:has
   mask: none !important;
   -webkit-mask: none !important;
 }
+
+/* Hide bare wildcard search queries like 'Searched * 132 results' */
+[data-gemini-wildcard="true"] {
+  display: none !important;
+}

@@ -29,6 +29,13 @@ Thumbs.db
 *.msi
 *.zip
 *.app/
+*.dll
+!community/**/*.dll
+*.pdb
+bin/
+obj/
+publish/
+dist-light/
 release/
 release-*/
 artifacts/

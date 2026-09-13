@@ -235,3 +235,92 @@ describe("Gemini App experience switch notification dots", () => {
     expect(collapsedBtn.getAttribute("data-has-unread")).toBe("true");
   });
 });
+
+describe("Gemini App search wildcard sanitation", () => {
+  const wildcardSource = source.slice(
+    source.indexOf("const SEARCH_ROW_SELECTOR ="),
+    source.indexOf("plugin.dom.observe(SEARCH_ROW_SELECTOR")
+  );
+  const { sanitizeSearchWildcardRow, sanitizeSearchWildcards } = new Function(
+    `${wildcardSource}\nreturn { sanitizeSearchWildcardRow, sanitizeSearchWildcards };`
+  )();
+
+  function createSearchRow(labelText: string, queryText: string, resultCount?: number) {
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-1 overflow-hidden text-sm group";
+
+    const label = document.createElement("span");
+    label.className = "text-secondary-foreground shrink-0";
+    label.textContent = labelText;
+    row.appendChild(label);
+
+    const query = document.createElement("span");
+    query.className = "overflow-hidden text-ellipsis whitespace-nowrap";
+    query.textContent = queryText;
+    row.appendChild(query);
+
+    if (typeof resultCount === "number") {
+      const badge = document.createElement("span");
+      badge.className = "shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs leading-none text-muted-foreground";
+      badge.textContent = `${resultCount} results`;
+      row.appendChild(badge);
+    }
+    return row;
+  }
+
+  it("marks bare wildcard queries as hidden with data-gemini-wildcard='true'", () => {
+    for (const wildcard of ["*", "**/*", '"*"', "'*'"]) {
+      const row = createSearchRow("Searched", wildcard, 132);
+      sanitizeSearchWildcardRow(row);
+      const querySpan = row.children[1];
+      expect(querySpan.getAttribute("data-gemini-wildcard")).toBe("true");
+    }
+  });
+
+  it("also sanitizes rows during active 'Searching' state", () => {
+    const row = createSearchRow("Searching", "*", 0);
+    sanitizeSearchWildcardRow(row);
+    expect(row.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+  });
+
+  it("preserves non-wildcard or specific search queries", () => {
+    for (const validQuery of ["*.ts", "*.html", "auth", "foo*bar", "**/*.json"]) {
+      const row = createSearchRow("Searched", validQuery, 12);
+      sanitizeSearchWildcardRow(row);
+      const querySpan = row.children[1];
+      expect(querySpan.hasAttribute("data-gemini-wildcard")).toBe(false);
+    }
+  });
+
+  it("does not modify rows with non-search labels", () => {
+    const row = createSearchRow("Executed", "*", 1);
+    sanitizeSearchWildcardRow(row);
+    expect(row.children[1].hasAttribute("data-gemini-wildcard")).toBe(false);
+  });
+
+  it("clears data-gemini-wildcard if query changes to a non-wildcard string", () => {
+    const row = createSearchRow("Searched", "*", 10);
+    sanitizeSearchWildcardRow(row);
+    expect(row.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+
+    row.children[1].textContent = "main.ts";
+    sanitizeSearchWildcardRow(row);
+    expect(row.children[1].hasAttribute("data-gemini-wildcard")).toBe(false);
+  });
+
+  it("sanitizes multiple rows inside a container subtree via sanitizeSearchWildcards", () => {
+    const container = document.createElement("div");
+    const row1 = createSearchRow("Searched", "*", 5);
+    const row2 = createSearchRow("Searched", "component.tsx", 1);
+    const row3 = createSearchRow("Searched", "**/*", 100);
+    container.appendChild(row1);
+    container.appendChild(row2);
+    container.appendChild(row3);
+
+    sanitizeSearchWildcards(container);
+    expect(row1.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+    expect(row2.children[1].hasAttribute("data-gemini-wildcard")).toBe(false);
+    expect(row3.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+  });
+});
+

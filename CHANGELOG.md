@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-14
+
+### Added
+
+- **Installer 2.0 Redesign across All Platforms.** Re-architected and redesigned installers for
+  Windows, macOS, and Linux built natively with platform-first UI toolkits for near-instant launches
+  and tiny file sizes:
+  - **Windows**: Built with WPF and .NET 10 as a single-file, self-contained native executable.
+  - **macOS**: Built with native SwiftUI and AppKit with Cocoa integration and SF Symbols.
+  - **Linux**: Built with GTK4 and Libadwaita styling matching the Willow design system.
+  - **Universal Fallback**: Cross-platform Web/Electron installer updated with 1:1 visual parity.
+- **Willow Design System & Minimalist Aesthetic**:
+  - 100% borderless surfaces across titlebar, host status card, action cards, and footer.
+  - Minimal indicator dot replacing the bulky status text pill.
+  - Circular icon containers and optically balanced vector open chevron arrows (`—>`).
+  - Elevated pill controls for secondary installation folder selection and footer actions.
+- **Search Wildcard Sanitation in Gemini App**:
+  - Added real-time sanitation for bare search query wildcards (`*`, `**/*`, `"*"`), hiding raw wildcard query text while preserving meaningful queries and match count badges.
+
 ## [0.1.5] - 2026-09-14
 
 ### Added

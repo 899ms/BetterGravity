@@ -98,8 +98,10 @@ export class InstallerController {
     const pill = byId<HTMLElement>("statePill");
     pill.classList.toggle("good", copy.tone === "good");
     pill.classList.toggle("bad", copy.tone === "bad");
+    const statusText = patchState === "unknown" ? "Not found" : patchState.replace("-", " ");
+    pill.title = statusText;
 
-    byId<HTMLElement>("stateLabel").textContent = patchState === "unknown" ? "Not found" : patchState.replace("-", " ");
+    byId<HTMLElement>("stateLabel").textContent = statusText;
     byId<HTMLElement>("stateEyebrow").textContent = copy.eyebrow;
     byId<HTMLElement>("stateTitle").textContent = copy.title;
     byId<HTMLElement>("stateDescription").textContent = copy.description;
@@ -119,35 +121,62 @@ export class InstallerController {
   }
 
   private renderActions(actions: readonly InstallOperation[]): void {
-    const [primary, ...secondary] = actions;
-    const panel = byId<HTMLElement>("decisionPanel");
-    const primaryButton = byId<HTMLButtonElement>("primaryAction");
+    const installButton = byId<HTMLButtonElement>("installAction");
+    const reinstallButton = byId<HTMLButtonElement>("reinstallAction");
+    const deleteButton = byId<HTMLButtonElement>("deleteAction");
 
-    panel.hidden = actions.length === 0 && this.installation.kind !== "not-found";
-    primaryButton.hidden = primary === undefined;
+    const kind = this.installation.kind;
 
-    if (primary) {
-      const copy = operations[primary];
-      byId<HTMLElement>("primaryIcon").textContent = copy.icon;
-      byId<HTMLElement>("primaryLabel").textContent = copy.label;
-      byId<HTMLElement>("primaryHint").textContent = copy.hint;
-      primaryButton.onclick = () => void this.run(primary);
+    if (kind === "detected") {
+      byId<HTMLElement>("installIcon").textContent = "download";
+      byId<HTMLElement>("installLabel").textContent = "Install BetterGravity";
+      byId<HTMLElement>("installHint").textContent = "Back up original bundle, then patch Antigravity.";
+      installButton.disabled = false;
+      installButton.onclick = () => void this.run("install");
+    } else if (kind === "needs-repatch") {
+      byId<HTMLElement>("installIcon").textContent = "sync";
+      byId<HTMLElement>("installLabel").textContent = "Reapply BetterGravity";
+      byId<HTMLElement>("installHint").textContent = "Antigravity changed. Patch the new version.";
+      installButton.disabled = false;
+      installButton.onclick = () => void this.run("update");
+    } else if (kind === "corrupted") {
+      byId<HTMLElement>("installIcon").textContent = "build";
+      byId<HTMLElement>("installLabel").textContent = "Repair BetterGravity";
+      byId<HTMLElement>("installHint").textContent = "Restore original bundle and rebuild the patch.";
+      installButton.disabled = false;
+      installButton.onclick = () => void this.run("repair");
+    } else if (kind === "patched") {
+      byId<HTMLElement>("installIcon").textContent = "check_circle";
+      byId<HTMLElement>("installLabel").textContent = "BetterGravity is Active";
+      byId<HTMLElement>("installHint").textContent = "Antigravity is currently patched and up to date.";
+      installButton.disabled = true;
+      installButton.onclick = null;
+    } else {
+      byId<HTMLElement>("installIcon").textContent = "download";
+      byId<HTMLElement>("installLabel").textContent = "Install BetterGravity";
+      byId<HTMLElement>("installHint").textContent = "Locate an Antigravity installation to continue.";
+      installButton.disabled = true;
+      installButton.onclick = null;
     }
 
-    const container = byId<HTMLElement>("secondaryActions");
-    container.replaceChildren();
-    for (const operation of secondary) {
-      const copy = operations[operation];
-      const button = document.createElement("button");
-      button.className = copy.destructive ? "secondary-action danger" : "secondary-action";
-      button.type = "button";
-      button.title = copy.hint;
-      button.textContent = copy.label;
-      button.onclick = () => void this.run(operation);
-      container.append(button);
+    byId<HTMLElement>("reinstallIcon").textContent = "replay";
+    if (actions.includes("reinstall")) {
+      reinstallButton.disabled = false;
+      reinstallButton.onclick = () => void this.run("reinstall");
+    } else {
+      reinstallButton.disabled = true;
+      reinstallButton.onclick = null;
     }
 
-    // With nothing installed there is still a location to choose.
+    byId<HTMLElement>("deleteIcon").textContent = "delete";
+    if (actions.includes("uninstall")) {
+      deleteButton.disabled = false;
+      deleteButton.onclick = () => void this.run("uninstall");
+    } else {
+      deleteButton.disabled = true;
+      deleteButton.onclick = null;
+    }
+
     byId<HTMLButtonElement>("chooseLocation").hidden = false;
   }
 
