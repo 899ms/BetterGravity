@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/logo.png" alt="BetterGravity Logo" width="130">
+
 # BetterGravity
 
 **The open community modification platform for [Google Antigravity](https://antigravity.google).**
