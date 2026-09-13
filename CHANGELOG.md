@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-09-14
+
+### Added
+
+- **Linux support and multi-format installers.** Native support for Linux (`x64` and `arm64`)
+  with automated electron-builder packaging generating `.AppImage`, `.deb`, and `.tar.gz`
+  installers alongside Windows and macOS.
+- **Linux host discovery and process management.** Automatic detection of Antigravity in
+  `/opt/Antigravity`, `/usr/share/antigravity`, and user directories (`~/.local/share/Antigravity`).
+  POSIX process scanning and graceful termination with system monitor guidance.
+- **Marketplace OS compatibility.** Automatic platform filtering in the Community
+  catalog so platform-specific plugins (such as Windows Computer Use) only display on
+  compatible host operating systems.
+
 ## [0.1.4] - 2026-09-12
 
 ### Added
