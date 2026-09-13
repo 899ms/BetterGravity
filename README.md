@@ -2,11 +2,9 @@
 
 # BetterGravity
 
-**Themes and plugins for [Google Antigravity](https://antigravity.google).**
+**The open community modification platform for [Google Antigravity](https://antigravity.google).**
 
-Settings that live inside Antigravity, not beside it. Drop in a `.css` file and
-the interface restyles instantly. Write a plugin in plain JavaScript with no
-build step.
+Drop in a `.css` file and the interface restyles instantly. Write a plugin in plain JavaScript with no build step. Experience a revamped UI, animated desktop companions, in-app browser with autonomous computer use, personal Gemini API keys, and Discord Rich Presence.
 
 [![Checks](https://github.com/YashjitPal/BetterGravity/actions/workflows/ci.yml/badge.svg)](https://github.com/YashjitPal/BetterGravity/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -14,39 +12,78 @@ build step.
 [![Platform: Windows | macOS](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-0078D4)](docs/installation.md)
 
 [Install](docs/installation.md) · [Make a theme](docs/themes.md) ·
-[Make a plugin](docs/plugins.md) · [How it works](docs/architecture.md)
+[Make a plugin](docs/plugins.md) · [How it works](docs/architecture.md) ·
+[Community catalog](community/catalog.json)
 
-<img src="docs/images/settings.png" alt="The BetterGravity section inside Antigravity's settings" width="720">
+<br><br>
+
+<img src="docs/images/home.png" alt="The BetterGravity interface inside Google Antigravity" width="800">
 
 </div>
 
 ---
 
-## What it does
+## What BetterGravity unlocks
+
+BetterGravity is both an extensible modification platform and a curated suite of power-user capabilities built directly into Antigravity.
+
+### 🎨 Revamped Gemini Workspace
+Restyled with the clean Willow design system, dedicated sidebar navigation (Chat, Work, Skills, Scheduled Tasks, and Pets), refined typography, and distraction-free conversation layouts.
+
+### 🐾 Interactive Desktop Companions
+Choose from 17+ desktop companions, generate custom animated pixel pets with Gemini, or watch them cheer, idle, and code alongside your agent in real time.
+
+<div align="center">
+  <img src="docs/images/pets-manager.png" alt="Antigravity Pets Manager" width="760">
+  <br><br>
+  <img src="docs/images/pets.gif" alt="Animated Desktop Companion Pet" width="380">
+</div>
+
+### 🌐 In-App Browser & Autonomous Computer Use
+Test web applications, inspect live DOM trees, and let your agent browse the web or drive mouse and keyboard interactions autonomously without leaving Antigravity.
+
+<div align="center">
+  <img src="docs/images/browser-showcase.gif" alt="In-Built Browser and Computer Use" width="760">
+</div>
+
+### 🔑 Bring Your Own Gemini Key & 🎮 Discord Rich Presence
+
+<div align="center">
+
+| Bring Your Own Gemini Key (BYOK) | Discord Rich Presence |
+| :---: | :---: |
+| <img src="docs/images/byok-settings.png" alt="Custom Gemini API Key Settings" width="360"> | <img src="docs/images/discord-rpc.jpg" alt="Discord Rich Presence Profile" width="360"> |
+| Bypass quota limits with your own Gemini API key, connect custom base URLs, and stream raw model reasoning & thinking tokens. See [Gemini key guide](docs/gemini-key.md). | Flex your agent's active tasks and elapsed time dynamically on Discord with zero project or code data leaked. See [Discord Rich Presence](docs/presence.md). |
+
+</div>
+
+---
+
+## Platform features
 
 |  | |
 | --- | --- |
-| **Themes** | A `.css` file, a folder of them with fonts and images, or a link to one hosted elsewhere. Save and Antigravity restyles immediately — no build step, no reload. Around twenty design tokens recolour the entire app. |
-| **Plugins** | A folder with a manifest and a script. Persistent storage, declarative settings, scoped styles, and DOM helpers built for a UI that constantly re-renders. |
+| **Themes** | A `.css` file, a folder of them with fonts and images, or a link to one hosted elsewhere. Save and Antigravity restyles immediately — no build step, no reload. Around twenty design tokens recolour the entire app. See [theme guide](docs/themes.md). |
+| **Plugins** | A folder with a manifest and a script. Persistent storage, declarative settings, scoped styles, and DOM helpers built for a UI that constantly re-renders. See [plugin guide](docs/plugins.md). |
 | **Interface hooks** | Add toasts, entries in Antigravity's menus, toolbar buttons, dialogs, and a settings screen of your own — built from the app's own components. See [adding to Antigravity's interface](docs/interface.md). |
 | **Deeper hooks** | Patch Antigravity's own functions, read its React tree, intercept its language-server traffic by RPC method name, and rewrite its bundle before it runs. See [reaching into Antigravity](docs/advanced.md). |
-| **Discord Rich Presence** | Show on your Discord profile whether the agent is working or idle, and for how long. Nothing identifying is sent - no project, conversation, or model names. See [Discord Rich Presence](docs/presence.md). |
-| **Your own Gemini key** | Run Antigravity's chat on a Gemini API key of your own instead of its bundled subscription — your own quota, and the model's thinking passed through. Translated on your machine; the key is sent to Google, or to a base URL of your own, and nowhere else. See [a Gemini key of your own](docs/gemini-key.md). |
 | **Native settings** | BetterGravity gets its own heading in Antigravity's settings sidebar — Settings, Plugins, and Themes — built from Antigravity's own components, so it follows your theme automatically. |
-| **Community catalogue** | The Themes and Plugins screens list what you have installed and, underneath, what the catalogue offers. Install and update in place; every file is checked against the hash recorded when it was reviewed. See [community content](docs/marketplace.md). |
-| **Survives updates** | Antigravity replaces its own program files when it updates, which removes BetterGravity. A detached guardian puts it back — the next time you close the app, since an update leaves Antigravity running and it will not close anything for you. |
+| **Community catalogue** | Browse, install, and update themes and plugins right inside the app; every file is checked against the SHA-256 hash recorded when reviewed. See [community content](docs/marketplace.md). |
+| **Survives updates** | Antigravity replaces its own program files when it updates, which removes BetterGravity. A detached guardian puts it back the next time you close the app. |
 | **Fully reversible** | The original bundle is kept beside the patched one. Uninstall restores it byte for byte and keeps your content. |
 
 ## Install
 
 Windows & macOS, Antigravity 2.x.
 
-Download the installer from [releases](https://github.com/YashjitPal/BetterGravity/releases),
-run it, press **Install**. Then open Antigravity and find **BetterGravity** in
-Settings.
+Download the installer from [releases](https://github.com/YashjitPal/BetterGravity/releases), run it, and press **Install**. Then open Antigravity and find **BetterGravity** in Settings.
 
-Full instructions and troubleshooting are in the
-[installation guide](docs/installation.md).
+> 🛡️ **Safety & Reversibility:**
+> - Backups are created automatically before any patch is applied.
+> - Uninstalling restores your original Antigravity installation byte for byte.
+> - Never touches your local repositories, workspace code, or credentials.
+
+Full instructions and troubleshooting are in the [installation guide](docs/installation.md).
 
 ## A theme in ten seconds
 
@@ -167,9 +204,7 @@ your credentials.
 
 ## Status
 
-Windows only, Antigravity 2.x, and not code-signed yet. Submissions are open,
-but nothing reads the catalog from inside Antigravity yet — installing still
-means adding the file yourself. See the [roadmap](docs/roadmap.md).
+Windows & macOS, Antigravity 2.x. In-app community catalogue browsing and 1-click installation are live. Submissions for new community themes and plugins are open via pull request. Binaries are currently unsigned (Windows SmartScreen notice applies on first run). See the [roadmap](docs/roadmap.md).
 
 ## Licence
 
