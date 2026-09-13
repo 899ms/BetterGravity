@@ -1570,11 +1570,12 @@ function syncContext() {
     lastTabs = ""; lastBounds = "";
   }
   syncPaneVisibility(active, routeChanged);
-  if (!active) return;
+  if (!active) return null;
   if (routeChanged || viewChanged) {
     mount(document.querySelector('button[data-tab-id="terminal"]'));
     if (!root && plugin.browser?.available) act("attach");
   }
+  return active;
 }
 function onKey(event) {
   const modifier = event.ctrlKey || event.metaKey;
@@ -1644,8 +1645,8 @@ function changesBrowserStructure(records) {
 }
 const occlusion = new MutationObserver(records => {
   if (!changesBrowserStructure(records)) return;
-  syncContext();
-  if (activeConversationContext() !== context) return;
+  const active = syncContext();
+  if (active !== context) return;
   if (!root || !root.isConnected || !toolbar?.isConnected || body !== toolbar.nextElementSibling) {
     const terminal = document.querySelector('button[data-tab-id="terminal"]');
     if (terminal) mount(terminal); else if (root) unmount();
