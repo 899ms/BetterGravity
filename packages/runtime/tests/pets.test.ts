@@ -232,6 +232,48 @@ describe("Pets activity updates", () => {
     expect(updates).toHaveLength(count + 1);
   });
 
+  it("reuses activity roots during streaming and observes newly mounted roots", async () => {
+    const updates: ActivityMessage[] = [];
+    const queries = vi.spyOn(document, "querySelectorAll");
+    pet.connectSurface(message => updates.push(message));
+    const summary = document.createElement("div");
+    summary.dataset.testid = "planner-response-text";
+    document.querySelector('[data-testid="conversation-view"]')!.append(summary);
+    await vi.advanceTimersByTimeAsync(50);
+    const rootScans = () => queries.mock.calls.filter(([selector]) => selector.includes('running-items-panel')).length;
+    const initialScans = rootScans();
+    expect(initialScans).toBeGreaterThan(0);
+    for (let index = 0; index < 8; index++) {
+      summary.textContent = `Streaming progress ${index}`;
+      await vi.advanceTimersByTimeAsync(50);
+      expect(updates.at(-1)!.entries.find(entry => entry.key === "previous")?.subtitle).toBe(`Streaming progress ${index}`);
+    }
+    expect(rootScans()).toBe(initialScans);
+
+    const replacement = document.createElement("main");
+    replacement.dataset.testid = "conversation-view";
+    replacement.dataset.cascadeId = "previous";
+    replacement.innerHTML = '<div data-testid="agent-input-box"><button data-tooltip-id="input-send-button-cancel-tooltip">Stop</button></div><div data-testid="planner-response-text">Newly mounted response</div>';
+    document.querySelector("main")!.replaceWith(replacement);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(rootScans()).toBe(initialScans + 1);
+    expect(updates.at(-1)!.entries.find(entry => entry.key === "previous")?.subtitle).toBe("Newly mounted response");
+    replacement.querySelector('[data-testid="planner-response-text"]')!.textContent = "Replacement progress";
+    await vi.advanceTimersByTimeAsync(50);
+    expect(updates.at(-1)!.entries.find(entry => entry.key === "previous")?.subtitle).toBe("Replacement progress");
+
+    // A host may assign an activity marker after inserting the element.
+    const newRoot = document.createElement("div");
+    newRoot.innerHTML = '<div data-testid="conversation-row-sidebar" data-cascade-id="background"><a aria-label="Background task"></a></div>';
+    document.body.append(newRoot);
+    await vi.advanceTimersByTimeAsync(50);
+    newRoot.dataset.testid = "conversation-list-sidebar";
+    await vi.advanceTimersByTimeAsync(50);
+    newRoot.querySelector("a")!.insertAdjacentHTML("afterend", '<span data-testid="status-loading-spinner"></span>');
+    await vi.advanceTimersByTimeAsync(50);
+    expect(updates.at(-1)!.entries.some(entry => entry.key === "background" && entry.status === "running")).toBe(true);
+  });
+
   it("keeps background progress text when its provider is released", async () => {
     const progress = "Reviewing all task cards and their shared width";
     hostState = { trajectorySummaries: { summaries: {
@@ -246,6 +288,28 @@ describe("Pets activity updates", () => {
     providers.clear();
     await vi.advanceTimersByTimeAsync(2000);
     expect(updates.at(-1)!.entries[0]!.subtitle).toBe(progress);
+  });
+
+  it("does not scan activity for slash-menu suggestions but still sees response completion", async () => {
+    const updates: ActivityMessage[] = [];
+    pet.connectSurface(message => updates.push(message));
+    const menu = document.createElement("div");
+    menu.setAttribute("data-mention-menu", "");
+    document.querySelector('[data-testid="agent-input-box"]')!.append(menu);
+    await vi.advanceTimersByTimeAsync(50);
+    const queries = vi.spyOn(document, "querySelectorAll");
+    for (let index = 0; index < 8; index++) {
+      const option = document.createElement("div");
+      option.setAttribute("role", "option");
+      option.textContent = `Command ${index}`;
+      menu.replaceChildren(option);
+      option.className = "bg-secondary";
+      await vi.advanceTimersByTimeAsync(50);
+    }
+    expect(queries).not.toHaveBeenCalledWith('[data-testid="conversation-row-sidebar"]');
+    document.querySelector('[data-tooltip-id="input-send-button-cancel-tooltip"]')!.remove();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(updates.at(-1)).toMatchObject({ working: false, entries: [] });
   });
 
   it("reports ongoing work independently of dismissing its card, and reports when it ends", () => {

@@ -175,6 +175,68 @@ describe("Gemini sent-message entrance", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("lets a send from far up the history finish after 1200ms without cutting off the native glide", () => {
+    const h = open(), f = fixture(); f.add(40); f.setUserTop(240);
+    h.entrance.arm(f.composer);
+    const turn = f.add(19040); h.entrance.mount(turn.step);
+    expect(f.scroller.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 19000, behavior: "smooth" });
+    f.setUserTop(17900); vi.advanceTimersByTime(1200);
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(true);
+    expect(turn.group.dataset.geminiSendEntering).toBe("true");
+    f.setUserTop(18700); vi.advanceTimersByTime(200);
+    expect(f.scroller.scrollTo).toHaveBeenCalledOnce();
+    expect(h.frames.size).toBe(0);
+    expect(turn.read).toHaveBeenCalledOnce();
+    expect(f.viewportRead).toHaveBeenCalledOnce();
+    turn.group.dispatchEvent(new Event("scrollend", { bubbles: true }));
+    expect(turn.group.dataset.geminiSendEntering).toBe("true");
+    f.setUserTop(19000); f.scroller.dispatchEvent(new Event("scrollend"));
+    expect(turn.group.hasAttribute("data-gemini-send-entering")).toBe(false);
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(false);
+    expect(f.scroller.scrollTo).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("releases a stopped native glide if its scrollend event is missing", () => {
+    const h = open(), f = fixture(); f.add(40); h.entrance.arm(f.composer);
+    const turn = f.add(19040); h.entrance.mount(turn.step);
+    f.setUserTop(19000); vi.advanceTimersByTime(1200);
+    expect(turn.group.dataset.geminiSendEntering).toBe("true");
+    vi.advanceTimersByTime(200);
+    expect(turn.group.hasAttribute("data-gemini-send-entering")).toBe(false);
+    expect(h.frames.size).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("retargets native history contraction while generated text never restarts the glide", () => {
+    const h = open(), f = fixture(); f.add(40); f.setUserTop(200);
+    h.entrance.arm(f.composer);
+    const turn = f.add(19040); h.entrance.mount(turn.step);
+    expect(f.scroller.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 19000, behavior: "smooth" });
+    f.setUserTop(15000); h.resizes[0]!.callback();
+    expect(f.scroller.scrollTo).toHaveBeenCalledOnce();
+    // Paging trims 12000px above the viewport, and browser anchoring keeps the
+    // same content visible. The new turn now rests at 7000, not 19000.
+    turn.move(-12000); f.setUserTop(3000); h.resizes[0]!.callback();
+    expect(f.scroller.scrollTo).toHaveBeenLastCalledWith({ top: 7000, behavior: "smooth" });
+    expect(f.scroller.scrollTo).toHaveBeenCalledTimes(2);
+    Object.defineProperty(f.scroller, "clientHeight", { value: 600 });
+    Object.defineProperty(f.scroller, "scrollHeight", { value: 9000 });
+    f.scroller.dispatchEvent(new Event("scrollend"));
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(true);
+    f.setUserTop(6000); h.resizes[0]!.callback(); h.resizes[0]!.callback();
+    expect(f.scroller.scrollTo).toHaveBeenCalledTimes(2);
+    f.setUserTop(7000); f.scroller.dispatchEvent(new Event("scrollend"));
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(false);
+    expect(turn.group.hasAttribute("data-gemini-send-entering")).toBe(false);
+    expect(h.resizes[0]!.disconnect).toHaveBeenCalledOnce();
+    const reads = turn.read.mock.calls.length;
+    h.resizes[0]!.callback();
+    expect(turn.read).toHaveBeenCalledTimes(reads);
+    expect(h.frames.size).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it.each(["wheel", "touchstart", "pointerdown", "keydown"])("hands over on %s with a 120ms settle and no further scroll writes", event => {
     const h = open(), f = fixture(); f.add(40);
     h.entrance.arm(f.composer);
@@ -287,15 +349,59 @@ describe("Gemini sent-message entrance", () => {
     expect(next.animations).toHaveLength(0);
   });
 
+  it("keeps a scrolled-up send armed when its native receipt arrives before the turn mounts", () => {
+    const h = open(), f = fixture(); f.add(40); f.add(1800); f.setUserTop(200);
+    h.entrance.arm(f.composer);
+    expect(h.entrance.nativeSend("two")).toBe(false);
+    expect(h.entrance.nativeSend("one")).toBe(true);
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(true);
+    expect(f.scroller.scrollTo).not.toHaveBeenCalled();
+    expect(h.frames.size).toBe(0);
+    vi.advanceTimersByTime(250);
+    const turn = f.add(4000);
+    expect(h.entrance.mount(turn.step)).toBe(true);
+    expect(f.scroller.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 3960, behavior: "smooth" });
+    expect(turn.group.dataset.geminiSendEntering).toBe("true");
+    f.setUserTop(3960); f.scroller.dispatchEvent(new Event("scrollend"));
+    expect(h.entrance.nativeSend("one")).toBe(true);
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(["wheel", "touchstart", "pointerdown", "keydown", "jump"])("honors %s while a submitted turn is still waiting to mount", event => {
+    const h = open(), f = fixture(); f.add(40); f.add(1800); f.setUserTop(200);
+    h.entrance.arm(f.composer);
+    if (event === "jump") h.entrance.interruptScroll(f.scroller);
+    else f.scroller.dispatchEvent(event === "keydown" ? new KeyboardEvent("keydown", { key: "PageUp" }) : new Event(event));
+    expect(h.entrance.ownsViewport(f.scroller)).toBe(false);
+    // The delayed native receipt must not undo the user's interruption either.
+    expect(h.entrance.nativeSend("one")).toBe(true);
+    const turn = f.add(4000);
+    expect(h.entrance.mount(turn.step)).toBe(true);
+    expect(h.entrance.nativeSend("one")).toBe(true);
+    expect(f.scroller.scrollTo).not.toHaveBeenCalled();
+    expect(f.scroller.scrollTop).toBe(200);
+    expect(turn.animations).toHaveLength(0);
+    expect(turn.group.hasAttribute("data-gemini-send-entering")).toBe(false);
+    expect(f.viewportRead).not.toHaveBeenCalled();
+    expect(h.frames.size).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("cancels the previous run before another send and releases all input listeners at completion", () => {
-    const h = open(), f = fixture(); h.entrance.arm(f.composer);
+    const h = open(), f = fixture();
+    const add = vi.spyOn(f.scroller, "addEventListener"), remove = vi.spyOn(f.scroller, "removeEventListener");
+    h.entrance.arm(f.composer);
     const first = f.add(40); h.entrance.mount(first.step);
-    const remove = vi.spyOn(f.scroller, "removeEventListener");
     h.entrance.arm(f.composer);
     expect(first.group.hasAttribute("data-gemini-send-entering")).toBe(false);
     const next = f.add(300); h.entrance.mount(next.step); h.frame(410);
-    for (const event of ["wheel", "touchstart", "pointerdown", "keydown", "scrollend"]) {
-      expect(remove.mock.calls.filter(([type]) => type === event)).toHaveLength(2);
+    for (const event of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+      const attached = add.mock.calls.filter(([type]) => type === event);
+      const detached = remove.mock.calls.filter(([type]) => type === event);
+      expect(attached.length).toBeGreaterThan(0);
+      expect(detached).toHaveLength(attached.length);
+      expect(detached.map(([, listener]) => listener)).toEqual(attached.map(([, listener]) => listener));
     }
     expect(vi.getTimerCount()).toBe(0);
   });

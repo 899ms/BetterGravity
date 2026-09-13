@@ -866,6 +866,8 @@ const EXPERIENCES = [
   { id: "work", label: "Work", badge: "beta" }
 ];
 
+const conversationProjectMap = new Map();
+
 const EXPERIENCE_STORAGE_KEY = "bettergravity-experience";
 
 function getStoredExperience() {
@@ -1078,6 +1080,170 @@ function markExperience(pill, selected, shouldRerender = true) {
   if (shouldRerender) {
     triggerListRerender();
   }
+  updateExperienceSwitchDots(pill);
+}
+
+function getElementFiber(element) {
+  if (!element) return null;
+  if (typeof plugin?.react?.getFiber === 'function') {
+    return plugin.react.getFiber(element);
+  }
+  const key = Object.keys(element).find((k) => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
+  return key ? element[key] : null;
+}
+
+let hostReduxStore = null;
+let hostStoreUnsubscribe = null;
+
+function getHostStore() {
+  if (hostReduxStore && typeof hostReduxStore.getState === 'function') return hostReduxStore;
+  const anchors = [
+    document.querySelector('[data-testid="conversation-view"]'),
+    document.querySelector('[data-testid="conversation-row-sidebar"]'),
+    document.querySelector('#gemini-experience-switch'),
+    document.body
+  ];
+  for (const anchor of anchors) {
+    if (!anchor) continue;
+    let fiber = getElementFiber(anchor);
+    for (let depth = 0; fiber && depth < 40; depth += 1, fiber = fiber.return) {
+      const s = fiber.memoizedProps?.store;
+      if (typeof s?.getState === 'function') {
+        hostReduxStore = s;
+        return s;
+      }
+      let dep = fiber.dependencies?.firstContext;
+      for (let i = 0; dep && i < 30; i += 1, dep = dep.next) {
+        const depStore = dep.memoizedValue?.store;
+        if (typeof depStore?.getState === 'function') {
+          hostReduxStore = depStore;
+          return depStore;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function parseExperienceTimestamp(timeObj) {
+  if (!timeObj) return 0;
+  return Number(timeObj.seconds || 0) + Number(timeObj.nanos || 0) / 1e9;
+}
+
+function isEligibleConversation(summary) {
+  if (!summary) return false;
+  if (summary.annotations?.archived) return false;
+  if (summary.trajectoryMetadata?.isBattleModeFork || summary.trajectoryMetadata?.parentConversationId) return false;
+  if (summary.trajectoryType === 2 || summary.trajectoryType === 3) return false;
+  return true;
+}
+
+const RECENT_UNREAD_WINDOW_SECONDS = 7 * 86400;
+
+function isConversationCompletedUnread(summary, cascadeId, activeCascadeId, localViewTime, isDocumentFocused) {
+  if (!cascadeId) return false;
+  if (cascadeId === activeCascadeId && isDocumentFocused) return false;
+  if (!isEligibleConversation(summary)) return false;
+
+  const modSec = Number(summary.lastModifiedTime?.seconds || 0);
+  if (!modSec) return false;
+
+  const now = Date.now() / 1000;
+  if (now - modSec > RECENT_UNREAD_WINDOW_SECONDS) return false;
+
+  if (summary.waitingSteps && summary.waitingSteps.length > 0) return true;
+  if (summary.notFullyIdle) return false;
+  if (summary.annotations?.markedAsUnread) return true;
+
+  const viewSec = parseExperienceTimestamp(summary.annotations?.lastUserViewTime);
+  const localSec = Number(localViewTime || 0);
+  const lastSeen = Math.max(viewSec, localSec);
+
+  return modSec > lastSeen;
+}
+
+function setExperienceUnreadIndicator(element, unread) {
+  if (!element) return;
+  // Store updates arrive during streaming even when the unread state is stable.
+  // Avoid invalidating the sidebar's styles for an identical attribute value.
+  if (unread) {
+    if (element.getAttribute('data-has-unread') !== 'true') element.setAttribute('data-has-unread', 'true');
+  } else if (element.hasAttribute('data-has-unread')) {
+    element.removeAttribute('data-has-unread');
+  }
+}
+
+function updateExperienceSwitchDots(switchElement) {
+  const pills = switchElement ? [switchElement] : Array.from(document.querySelectorAll('#gemini-experience-switch'));
+  if (pills.length === 0) return;
+
+  const store = getHostStore();
+  if (!store) return;
+
+  if (!hostStoreUnsubscribe && typeof store.subscribe === 'function') {
+    hostStoreUnsubscribe = store.subscribe(() => {
+      updateExperienceSwitchDots();
+    });
+  }
+
+  const state = store.getState();
+  const summaries = state?.trajectorySummaries?.summaries || {};
+  const sections = state?.conversation?.sidebarSections || [];
+  const localTimes = state?.conversation?.localLastViewedTimes || {};
+  const urlMatch = typeof window !== 'undefined' && window.location?.pathname ? window.location.pathname.match(/\/c\/([a-zA-Z0-9_-]+)/) : null;
+  const activeCascadeId = state?.conversation?.convoState?.cascadeId || state?.conversation?.activeCascadeId || (urlMatch ? urlMatch[1] : '');
+  const isDocumentFocused = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
+
+  const chatIds = new Set();
+  const workIds = new Set();
+
+  for (const sec of sections) {
+    const isChat = sec.id === 'outside-of-project';
+    const targetSet = isChat ? chatIds : workIds;
+    for (const id of (sec.conversationIds || [])) {
+      targetSet.add(id);
+    }
+  }
+
+  let hasUnreadChat = false;
+  for (const cid of chatIds) {
+    if (isConversationCompletedUnread(summaries[cid], cid, activeCascadeId, localTimes[cid], isDocumentFocused)) {
+      hasUnreadChat = true;
+      break;
+    }
+  }
+
+  let hasUnreadWork = false;
+  for (const cid of workIds) {
+    if (isConversationCompletedUnread(summaries[cid], cid, activeCascadeId, localTimes[cid], isDocumentFocused)) {
+      hasUnreadWork = true;
+      break;
+    }
+  }
+
+  if (!hasUnreadWork && typeof conversationProjectMap !== 'undefined' && conversationProjectMap.size > 0) {
+    for (const [key] of conversationProjectMap) {
+      const cid = key.endsWith(':groupId') ? key.slice(0, -8) : key;
+      if (cid && !workIds.has(cid)) {
+        if (isConversationCompletedUnread(summaries[cid], cid, activeCascadeId, localTimes[cid], isDocumentFocused)) {
+          hasUnreadWork = true;
+          break;
+        }
+      }
+    }
+  }
+
+  for (const pill of pills) {
+    setExperienceUnreadIndicator(pill.querySelector('[data-gemini-dot="chat"]'), hasUnreadChat);
+    setExperienceUnreadIndicator(pill.querySelector('[data-gemini-dot="work"]'), hasUnreadWork);
+
+    const collapsedBtn = pill.querySelector('.gemini-experience-collapsed-btn');
+    if (collapsedBtn) {
+      const currentExp = pill.dataset.geminiExperience || getStoredExperience();
+      const hasInactiveUnread = currentExp === 'chat' ? hasUnreadWork : hasUnreadChat;
+      setExperienceUnreadIndicator(collapsedBtn, hasInactiveUnread);
+    }
+  }
 }
 
 function buildExperienceSwitch() {
@@ -1097,6 +1263,11 @@ function buildExperienceSwitch() {
     const tab = document.createElement("button");
     tab.type = "button";
     tab.dataset.geminiExperienceTab = experience.id;
+    const dot = document.createElement("span");
+    dot.className = "gemini-experience-dot";
+    dot.dataset.geminiDot = experience.id;
+    dot.setAttribute("aria-hidden", "true");
+    tab.append(dot);
     const label = document.createElement("span");
     label.dataset.geminiExperienceLabel = "";
     label.textContent = experience.label;
@@ -1127,6 +1298,7 @@ function buildExperienceSwitch() {
       <rect x="0.8" y="0.8" width="18.4" height="11.4" rx="5.7" stroke="currentColor" stroke-width="1.6"/>
       <circle cx="5.7" cy="6.5" r="2.6" fill="currentColor" class="gemini-switch-dot"/>
     </svg>
+    <span class="gemini-experience-collapsed-dot" aria-hidden="true"></span>
   `;
   collapsedBtn.addEventListener("click", (e) => {
     e.preventDefault();
@@ -1140,6 +1312,7 @@ function buildExperienceSwitch() {
 
   pill.append(track);
   markExperience(pill, getStoredExperience(), false);
+  updateExperienceSwitchDots(pill);
   return pill;
 }
 
@@ -1160,6 +1333,7 @@ function ensureExperienceSwitch(sidebar) {
   if (pill.dataset.geminiExperience !== exp) {
     markExperience(pill, exp, false);
   }
+  updateExperienceSwitchDots(pill);
 }
 
 /* ---------------------------------------------------------------------------
@@ -3248,8 +3422,6 @@ plugin.dom.observe(PROJECT_CONV_TOGGLE_SELECTOR, (btn) => {
  * Every pass below is idempotent, so the mutations a render causes settle
  * instead of feeding themselves.
  * ------------------------------------------------------------------------- */
-const conversationProjectMap = new Map();
-
 function handleNewConversationActivation(e) {
   if (e) {
     e.preventDefault();
@@ -4143,6 +4315,11 @@ plugin.onDispose(() => {
     cancelAnimationFrame(settingsRafId);
     settingsRafId = null;
   }
+  if (typeof hostStoreUnsubscribe === 'function') {
+    hostStoreUnsubscribe();
+    hostStoreUnsubscribe = null;
+  }
+  hostReduxStore = null;
 
   for (const [element, observer] of rememberedObservers()) {
     observer.disconnect();
@@ -6266,9 +6443,12 @@ const USER_MSG_EXPANDED_RESERVE = 24;
 // bubble's DOM writes with the next one's forced layout.
 const pendingBubbleUpdates = new Set();
 const bubbleResizeHandlers = new WeakMap();
+const observedBubbleTexts = new WeakSet();
+const BUBBLE_SIZE_MARKER = 'data-gemini-bubble-size';
 let bubbleUpdatesQueued = false;
 let bubbleUpdatesDisposed = false;
 let bubbleResizeObserver = null;
+let bubbleConnectionObserver = null;
 
 function scheduleBubbleUpdate(prepare) {
   if (bubbleUpdatesDisposed) return;
@@ -6286,22 +6466,64 @@ function scheduleBubbleUpdate(prepare) {
   });
 }
 
+function updateBubbleConnection(text) {
+  const update = bubbleResizeHandlers.get(text);
+  if (!update) return;
+  if (text.isConnected) {
+    if (observedBubbleTexts.has(text)) return;
+    observedBubbleTexts.add(text);
+    bubbleResizeObserver.observe(text);
+    scheduleBubbleUpdate(update);
+  } else {
+    observedBubbleTexts.delete(text);
+    bubbleResizeObserver.unobserve(text);
+    pendingBubbleUpdates.delete(update);
+  }
+}
+
+function collectBubbleTexts(root, into) {
+  if (root.nodeType !== Node.ELEMENT_NODE) return;
+  if (root.hasAttribute(BUBBLE_SIZE_MARKER)) into.add(root);
+  if (root.firstElementChild) {
+    for (const text of root.querySelectorAll(`[${BUBBLE_SIZE_MARKER}]`)) into.add(text);
+  }
+}
+
 function observeBubbleText(text, update) {
   if (!bubbleResizeObserver) {
     bubbleResizeObserver = new ResizeObserver(entries => {
       for (const { target } of entries) {
+        if (!target.isConnected) {
+          updateBubbleConnection(target);
+          continue;
+        }
         const prepare = bubbleResizeHandlers.get(target);
         if (prepare) scheduleBubbleUpdate(prepare);
       }
     });
+    // A shared ResizeObserver retains its targets even when their conversation
+    // leaves the document. Release removed bubbles without waiting for a frame
+    // or a resize (hidden bubbles can already have zero size). Keep only their
+    // weak handlers so a reattached native node resumes with the same controls.
+    bubbleConnectionObserver = new MutationObserver(records => {
+      const changed = new Set();
+      for (const record of records) {
+        for (const node of record.removedNodes) if (!node.isConnected) collectBubbleTexts(node, changed);
+        for (const node of record.addedNodes) if (node.isConnected) collectBubbleTexts(node, changed);
+      }
+      for (const target of changed) updateBubbleConnection(target);
+    });
+    bubbleConnectionObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
   bubbleResizeHandlers.set(text, update);
-  bubbleResizeObserver.observe(text);
+  text.setAttribute(BUBBLE_SIZE_MARKER, '');
+  updateBubbleConnection(text);
 }
 
 plugin.onDispose(() => {
   bubbleUpdatesDisposed = true;
   pendingBubbleUpdates.clear();
+  bubbleConnectionObserver?.disconnect();
   bubbleResizeObserver?.disconnect();
 });
 
@@ -6539,7 +6761,9 @@ function setupUserMessageBubble(step) {
       toggleCurrent = null;
       if (bubbleResizeHandlers.get(textContent) === updateToggle) {
         bubbleResizeHandlers.delete(textContent);
+        observedBubbleTexts.delete(textContent);
         bubbleResizeObserver?.unobserve(textContent);
+        textContent.removeAttribute(BUBBLE_SIZE_MARKER);
       }
     }
   });
@@ -6924,7 +7148,10 @@ function createGeminiSendEntrance(environment) {
   let disposed = false;
 
   function clearPending() {
-    if (pending) environment.clearTimeout(pending.timer);
+    if (pending) {
+      environment.clearTimeout(pending.timer);
+      detachScrollIntent(pending);
+    }
     pending = null;
   }
 
@@ -6945,12 +7172,47 @@ function createGeminiSendEntrance(environment) {
     return !pending.pane?.isConnected || pending.pane.contains(view);
   }
 
+  function attachScrollIntent(state, onInterrupt) {
+    if (!state.scroller) return;
+    state.interrupt = onInterrupt;
+    state.keydown = event => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key) &&
+          !event.target.closest('input, textarea, [contenteditable="true"]')) onInterrupt();
+    };
+    state.scroller.addEventListener("wheel", state.interrupt, { passive: true });
+    state.scroller.addEventListener("touchstart", state.interrupt, { passive: true });
+    state.scroller.addEventListener("pointerdown", state.interrupt, { passive: true });
+    state.scroller.addEventListener("keydown", state.keydown);
+  }
+
+  function detachScrollIntent(state) {
+    if (!state.scroller || !state.interrupt) return;
+    state.scroller.removeEventListener("wheel", state.interrupt);
+    state.scroller.removeEventListener("touchstart", state.interrupt);
+    state.scroller.removeEventListener("pointerdown", state.interrupt);
+    state.scroller.removeEventListener("keydown", state.keydown);
+    state.interrupt = state.keydown = null;
+  }
+
+  function interruptPending() {
+    if (!pending) return;
+    // Keep the submit receipt so its delayed native callback cannot jump after
+    // the user has taken over. The eventual turn consumes it without moving.
+    pending.interrupted = true;
+    detachScrollIntent(pending);
+  }
+
+  function watchPendingScroll(view) {
+    const scroller = view?.querySelector(".overflow-y-auto");
+    if (!pending || pending.interrupted || pending.scroller === scroller) return;
+    detachScrollIntent(pending);
+    pending.scroller = scroller;
+    attachScrollIntent(pending, interruptPending);
+  }
+
   function detach(run) {
     run.resize?.disconnect();
-    run.scroller.removeEventListener("wheel", run.interrupt);
-    run.scroller.removeEventListener("touchstart", run.interrupt);
-    run.scroller.removeEventListener("pointerdown", run.interrupt);
-    run.scroller.removeEventListener("keydown", run.keydown);
+    detachScrollIntent(run);
     run.scroller.removeEventListener("scrollend", run.finishScroll);
   }
 
@@ -6990,6 +7252,7 @@ function createGeminiSendEntrance(environment) {
       route: environment.location?.pathname,
       timer: environment.setTimeout(clearPending, 4000)
     };
+    watchPendingScroll(view);
   }
 
   function animate(run, offset, duration) {
@@ -7035,9 +7298,10 @@ function createGeminiSendEntrance(environment) {
     // Queued messages, subagents, and history arriving during navigation cannot.
     if (!article || !matches(view) || !scroller || scroller === view || group.parentElement?.nextElementSibling) return false;
 
-    const first = pending.first;
+    const { first, interrupted } = pending;
     clearPending();
     claim = { step: new WeakRef(step), id: view.dataset.cascadeId, until: now() + 1500 };
+    if (interrupted) return true;
 
     // All initial geometry is read before an animation or scroll is written.
     const viewport = scroller.getBoundingClientRect();
@@ -7062,16 +7326,16 @@ function createGeminiSendEntrance(environment) {
       ownsScroll: true, nativeScroll: false, frameDriven: false, dirty: false,
       interrupt: null, keydown: null, finishScroll: null
     };
-    run.interrupt = () => interrupt(run);
-    run.keydown = event => {
-      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key) &&
-          !event.target.closest('input, textarea, [contenteditable="true"]')) interrupt(run);
+    run.finishScroll = event => {
+      if (event.target !== scroller) return;
+      // A page contraction can replace a smooth-scroll target. Ignore the old
+      // scroll's completion if the replacement is still travelling to the turn.
+      if (Math.abs(scroller.scrollTop - destination) > 2 &&
+          scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 2) return;
+      run.nativeScroll = false;
+      finish(run);
     };
-    run.finishScroll = () => { run.nativeScroll = false; finish(run); };
-    scroller.addEventListener("wheel", run.interrupt, { passive: true });
-    scroller.addEventListener("touchstart", run.interrupt, { passive: true });
-    scroller.addEventListener("pointerdown", run.interrupt, { passive: true });
-    scroller.addEventListener("keydown", run.keydown);
+    attachScrollIntent(run, () => interrupt(run));
     group.setAttribute("data-gemini-send-entering", "true");
 
     try {
@@ -7082,7 +7346,43 @@ function createGeminiSendEntrance(environment) {
         // After a long response the bubble already begins below the viewport.
         run.nativeScroll = true;
         scroller.addEventListener("scrollend", run.finishScroll);
-        run.timer = environment.setTimeout(() => finish(run), 1200);
+        // A send from far up the history can take longer than 1200ms. Let the
+        // browser finish its glide; the fallback only releases a stopped scroll
+        // if scrollend was missed. No per-frame layout reads or retargeting.
+        let lastTop = startTop;
+        const checkStopped = () => {
+          if (active !== run) return;
+          const top = scroller.scrollTop;
+          if (!group.isConnected || !view.isConnected || quiet() || Math.abs(top - lastTop) < 0.5) finish(run);
+          else {
+            lastTop = top;
+            run.timer = environment.setTimeout(checkStopped, 200);
+          }
+        };
+        run.timer = environment.setTimeout(checkStopped, 1200);
+        if (environment.ResizeObserver) {
+          run.resize = new environment.ResizeObserver(() => {
+            if (active !== run || !group.isConnected || !view.isConnected) return;
+            const top = scroller.scrollTop;
+            const viewportRect = scroller.getBoundingClientRect();
+            const groupRect = group.getBoundingClientRect();
+            const next = Math.max(0, groupRect.top - viewportRect.top + top - inset);
+            // Native history paging removes content above the viewport. Its
+            // anchor shift preserves the picture but changes the turn's scroll
+            // coordinate. Growth below the bubble leaves this coordinate alone
+            // and must never restart or extend the send scroll.
+            if (Math.abs(next - destination) < 1) return;
+            destination = next;
+            if (destination <= top + 1) { finish(run); return; }
+            lastTop = top;
+            environment.clearTimeout(run.timer);
+            run.timer = environment.setTimeout(checkStopped, 1200);
+            scroller.scrollTo({ top: destination, behavior: "smooth" });
+          });
+          run.resize.observe(scroller);
+          run.resize.observe(group);
+          run.resize.observe(group.parentElement.parentElement);
+        }
         scroller.scrollTo({ top: destination, behavior: "smooth" });
       } else {
         run.frameDriven = true;
@@ -7148,6 +7448,13 @@ function createGeminiSendEntrance(environment) {
       const view = Array.from(scope.querySelectorAll(VIEW)).find(node => node.dataset.cascadeId === id && matches(node));
       const step = stepsIn(view).at(-1);
       if (step && mount(step)) return true;
+      // The step count can arrive before the new turn's DOM. Keep this real
+      // submit armed for the shared observer instead of falling through to the
+      // native jump, which would both skip the glide and cancel the pending arm.
+      if (view) {
+        watchPendingScroll(view);
+        return true;
+      }
     }
     const step = claim?.step.deref();
     return !!(claim?.id === id && now() < claim.until && step?.isConnected &&
@@ -7158,11 +7465,11 @@ function createGeminiSendEntrance(environment) {
     if (disposed) return false;
     if (active?.ownsScroll && active.scroller === node) return true;
     // Also suppress the initial follow request between the commit and observer.
-    return !!pending && matches(node.closest(VIEW));
+    return !!pending && !pending.interrupted && matches(node.closest(VIEW));
   }
 
   function interruptScroll(node) {
-    if (pending && matches(node.closest(VIEW))) clearPending();
+    if (pending && matches(node.closest(VIEW))) interruptPending();
     if (active?.scroller === node) interrupt(active);
   }
 

@@ -3286,6 +3286,8 @@ const libraryHiddenChildren = new Map();
 let libraryBusy = false;
 let libraryCreating = false;
 let libraryRefreshPending = false;
+let libraryRefreshing = false;
+let libraryRenderSnapshot = null;
 let libraryDisposed = false;
 let libraryRequest = 0;
 let previewState = 0;
@@ -3565,27 +3567,39 @@ function renderPetPreview() {
 }
 
 async function refreshPetLibrary() {
-  if (libraryBusy) { libraryRefreshPending = true; return; }
+  if (libraryDisposed) return;
+  if (libraryBusy || libraryRefreshing) { libraryRefreshPending = true; return; }
+  libraryRefreshing = true;
   const mine = ++libraryRequest;
   try {
-    if (!plugin.pets) throw new Error("Restart Antigravity to activate pet creation.");
-    const next = await plugin.pets.read();
-    if (libraryDisposed || mine !== libraryRequest) return;
-    libraryState = next;
-    libraryError = next.message ?? "";
-    const customId = selectedPetId.startsWith("custom:") ? selectedPetId.slice(7) : null;
-    if (customId && next.pets.some(pet => pet.id === customId)) {
-      const loaded = await plugin.pets.load(customId);
+    try {
+      if (!plugin.pets) throw new Error("Restart Antigravity to activate pet creation.");
+      const next = await plugin.pets.read();
       if (libraryDisposed || mine !== libraryRequest) return;
-      const changed = selectedPet?.spritesheetDataUrl !== loaded.spritesheetDataUrl;
-      selectedPet = loaded;
-      if (changed) begin();
+      libraryState = next;
+      libraryError = next.message ?? "";
+      const customId = selectedPetId.startsWith("custom:") ? selectedPetId.slice(7) : null;
+      if (customId && next.pets.some(pet => pet.id === customId)) {
+        const loaded = await plugin.pets.load(customId);
+        if (libraryDisposed || mine !== libraryRequest) return;
+        const changed = selectedPet?.spritesheetDataUrl !== loaded.spritesheetDataUrl;
+        selectedPet = loaded;
+        if (changed) begin();
+      }
+    } catch (error) {
+      if (libraryDisposed || mine !== libraryRequest) return;
+      libraryError = error?.message ?? String(error);
     }
-  } catch (error) {
-    if (libraryDisposed || mine !== libraryRequest) return;
-    libraryError = error?.message ?? String(error);
+    renderPetLibrary();
+  } finally {
+    libraryRefreshing = false;
+    // A burst of folder/settings notifications needs one follow-up read of the
+    // latest state, not concurrent copies of every sprite and preview.
+    if (libraryRefreshPending && !libraryBusy && !libraryDisposed) {
+      libraryRefreshPending = false;
+      void refreshPetLibrary();
+    }
   }
-  renderPetLibrary();
 }
 
 async function selectLibraryPet(id) {
@@ -3655,8 +3669,22 @@ async function createPet() {
 }
 
 function renderPetLibrary() {
-  clearTimeout(previewTimer);
   if (!libraryRoot || libraryDisposed) return;
+  const records = [{ id: "rocky", displayName: "Rocky", description: "The original companion." },
+    ...(libraryState?.pets ?? []).map(pet => ({ ...pet, id: `custom:${pet.id}` }))].map(petDetails);
+  const runs = (libraryState?.runs ?? []).filter(run => run.stage !== "ready");
+  const notice = libraryError || (libraryState === null ? "Loading your pets…" : "");
+  // Compare the values this page draws without serializing large image URLs or
+  // retaining old library objects. Repeated snapshots leave decoded previews,
+  // focus, scroll, and the current animation frame in place. Keep this list in
+  // step with new rendered fields below; mutable input records are copied into
+  // primitive slots so an in-place update is detected as well.
+  const snapshot = [libraryBusy, libraryCreating, shown, selectedPetId, settings.sheet,
+    selectedPet?.spritesheetDataUrl, petName(), notice, !!libraryError, libraryState === null, records.length, runs.length];
+  for (const pet of records) snapshot.push(pet.id, pet.displayName, pet.description, pet.previewDataUrl);
+  for (const run of runs) snapshot.push(run.name, run.stage, run.message, run.previewDataUrl);
+  if (libraryRenderSnapshot?.length === snapshot.length && snapshot.every((value, index) => value === libraryRenderSnapshot[index])) return;
+  clearTimeout(previewTimer);
   const scrollTop = libraryPage?.scrollTop ?? 0;
   const focusKey = libraryRoot.contains(document.activeElement) ? document.activeElement?.dataset.petLibraryFocus : null;
   libraryRoot.replaceChildren();
@@ -3692,7 +3720,6 @@ function renderPetLibrary() {
   refresh.disabled = libraryBusy;
   actions.append(create, folder, visibility, refresh);
   libraryRoot.append(actions, renderPetPreview());
-  const notice = libraryError || (libraryState === null ? "Loading your pets…" : "");
   if (notice) {
     const message = libraryElement("p", "bettergravity-pet-library__notice", notice);
     message.setAttribute("role", libraryError ? "alert" : "status");
@@ -3701,8 +3728,7 @@ function renderPetLibrary() {
   const stages = ["preparing", "imagining", "posing", "hatching"];
   const labels = ["Getting ready", "Imagining the main look", "Picturing the poses", "Hatching"];
   const progressCards = [];
-  for (const run of libraryState?.runs ?? []) {
-    if (run.stage === "ready") continue;
+  for (const run of runs) {
     const card = libraryElement("section", "bettergravity-pet-library__progress");
     if (run.previewDataUrl) {
       const image = libraryElement("img", "bettergravity-pet-library__progress-image");
@@ -3727,8 +3753,6 @@ function renderPetLibrary() {
   }
   const available = libraryElement("section", "bettergravity-pet-library__available");
   const list = libraryElement("div", "bettergravity-pet-library__list");
-  const records = [{ id: "rocky", displayName: "Rocky", description: "The original companion." },
-    ...(libraryState?.pets ?? []).map(pet => ({ ...pet, id: `custom:${pet.id}` }))].map(petDetails);
   const heading = libraryElement("h2", "", `Available pets (${records.length})`);
   heading.id = "bettergravity-pets-available";
   available.setAttribute("aria-labelledby", heading.id);
@@ -3776,6 +3800,7 @@ function renderPetLibrary() {
   paintPetPreview();
   if (libraryPage) libraryPage.scrollTop = scrollTop;
   if (focusKey) [...libraryRoot.querySelectorAll("[data-pet-library-focus]")].find(node => node.dataset.petLibraryFocus === focusKey)?.focus({ preventScroll: true });
+  libraryRenderSnapshot = snapshot;
 }
 
 function petLibraryViewport() {
@@ -3804,6 +3829,7 @@ function closePetLibrary() {
   libraryPage?.remove();
   libraryPage = null;
   libraryRoot = null;
+  libraryRenderSnapshot = null;
   for (const [child, previous] of libraryHiddenChildren) {
     child.removeAttribute("data-pet-page-hidden");
     child.inert = previous.inert;
@@ -5657,6 +5683,7 @@ let activityTimer;
 let activityObserver;
 let activityMountObserver;
 let activityRoots = [];
+let activityRootsDirty = true;
 let activityStore = null;
 let activityManager = null;
 let storeSubscription;
@@ -5723,6 +5750,10 @@ function syncActivitySources() {
   }
 
   if (typeof MutationObserver !== "function" || !document.body) return;
+  // Streamed text changes activity, but not where its observers are attached.
+  // Rediscover roots only when their membership or DOM connection changes.
+  if (!activityRootsDirty && activityRoots.every(root => root.isConnected)) return;
+  activityRootsDirty = false;
   const candidates = [...document.querySelectorAll(ACTIVITY_ROOTS)];
   if (!document.querySelector(ROW_LIST)) {
     for (const row of document.querySelectorAll(ROW)) if (row.parentElement) candidates.push(row.parentElement);
@@ -5730,7 +5761,17 @@ function syncActivitySources() {
   const roots = [...new Set(candidates)].filter(root => !candidates.some(other => other !== root && other.contains(root)));
   if (roots.length !== activityRoots.length || roots.some((root, index) => root !== activityRoots[index])) {
     activityRoots = roots;
-    activityObserver ??= new MutationObserver(scheduleActivity);
+    activityObserver ??= new MutationObserver(changes => {
+      // Typeahead options describe a draft, not the agent's current activity.
+      // Opening/closing the menu still reaches its composer observer, as do
+      // Stop controls, response text, and any other change in the same batch.
+      if (changes.every(change => {
+        const target = change.target.nodeType === 1 ? change.target : change.target.parentElement;
+        return target?.closest("[data-mention-menu]");
+      })) return;
+      if (changes.some(change => change.type === "attributes" && change.attributeName === "data-testid" && activityRoots.includes(change.target))) activityRootsDirty = true;
+      scheduleActivity();
+    });
     activityObserver.disconnect();
     for (const root of roots) activityObserver.observe(root, {
       subtree: true, childList: true, characterData: true, attributes: true,
@@ -5743,11 +5784,15 @@ function syncActivitySources() {
     activityMountObserver = new MutationObserver(changes => {
       if (activityRoots.some(root => !root.isConnected) || changes.some(change => {
         if (activityRoots.some(root => root.contains(change.target))) return false;
+        if (change.type === "attributes") return change.target.matches(`${ACTIVITY_ROOTS}, ${ROW}`);
         return [...change.addedNodes, ...change.removedNodes].some(node => node instanceof Element &&
           (node.matches(`${ACTIVITY_ROOTS}, ${ROW}`) || node.querySelector(`${ACTIVITY_ROOTS}, ${ROW}`)));
-      })) scheduleActivity();
+      })) {
+        activityRootsDirty = true;
+        scheduleActivity();
+      }
     });
-    activityMountObserver.observe(document.body, { subtree: true, childList: true });
+    activityMountObserver.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-testid"] });
   }
 }
 
@@ -5758,6 +5803,7 @@ function stopActivitySources() {
   activityMountObserver?.disconnect();
   activityObserver = activityMountObserver = undefined;
   activityRoots = [];
+  activityRootsDirty = true;
   releaseActivitySubscription(storeSubscription);
   storeSubscription = undefined;
   activityStore = activityManager = null;

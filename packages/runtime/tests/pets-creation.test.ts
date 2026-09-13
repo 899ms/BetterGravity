@@ -17,6 +17,7 @@ let saved: Record<string, unknown>;
 let write: ReturnType<typeof vi.fn>;
 let prepare: ReturnType<typeof vi.fn>;
 let load: ReturnType<typeof vi.fn>;
+let read: ReturnType<typeof vi.fn>;
 let media: EventTarget & { matches: boolean };
 let plugin: { createPet(): Promise<void>; openPetLibrary(): void; closePetLibrary(): void; selectLibraryPet(id: string): Promise<void>; selected(): PetSprite | null; error(): string; force(): string };
 
@@ -40,6 +41,7 @@ beforeEach(async () => {
   prepare = vi.fn(async () => ({ skillPath: "C:/Pets/skills/hatch-pet/SKILL.md", directory: "C:/BetterGravity/pets" }));
   load = vi.fn(async () => example);
   state = { enabled: true, skillPath: "C:/Pets/skills/hatch-pet/SKILL.md", directory: "C:/BetterGravity/pets", pets: [example], runs: [] };
+  read = vi.fn(async () => state);
   document.body.innerHTML = '<aside><a data-testid="new-conversation-button" href="/">New chat</a></aside><nav></nav><div id="viewport"><main></main></div>';
   history.replaceState(null, "", "/c/previous");
   composer("previous");
@@ -59,7 +61,7 @@ beforeEach(async () => {
         options.render(body, close); cleanup.push(close); return { close };
       }
     },
-    pets: { read: async () => state, load, prepareCreation: prepare, openFolder: vi.fn(), onChanged: (callback: () => void) => { changed = callback; return () => { changed = undefined; }; } },
+    pets: { read, load, prepareCreation: prepare, openFolder: vi.fn(), onChanged: (callback: () => void) => { changed = callback; return () => { changed = undefined; }; } },
     onDispose: (callback: () => void) => cleanup.push(callback)
   };
   plugin = new Function("plugin", "window", `${source}\nreturn {createPet,openPetLibrary,closePetLibrary,selectLibraryPet,selected:()=>selectedPet,error:()=>libraryError,force:()=>settings.force};`)(context, window);
@@ -303,6 +305,87 @@ describe("Pets sidebar page", () => {
     expect(label()).toBe("Thinking");
     expect(document.activeElement).toBe(button('[aria-label="Next animation"]'));
     expect(preview().style.backgroundPosition).toBe("0% 70%");
+  });
+
+  it("keeps unchanged previews, animation progress, focus, and scroll across fresh library snapshots", async () => {
+    plugin.openPetLibrary(); await Promise.resolve(); await Promise.resolve();
+    media.matches = false;
+    const waving = button('[data-pet-animation="waving"]');
+    waving.click(); waving.focus();
+    vi.advanceTimersByTime(140);
+    const sprite = preview(), frame = sprite.style.backgroundPosition;
+    const page = document.getElementById("bettergravity-pets-view")!;
+    page.scrollTop = 120;
+    const children = [...page.querySelector(".bettergravity-pet-library")!.children];
+    state = { ...state, pets: state.pets.map(pet => ({ ...pet })), runs: state.runs.map(run => ({ ...run })) };
+    changed!(); await Promise.resolve(); await Promise.resolve();
+    expect([...page.querySelector(".bettergravity-pet-library")!.children]).toEqual(children);
+    expect(preview()).toBe(sprite);
+    expect(sprite.style.backgroundPosition).toBe(frame);
+    expect(document.activeElement).toBe(waving);
+    expect(page.scrollTop).toBe(120);
+    vi.advanceTimersByTime(140);
+    expect(sprite.style.backgroundPosition).not.toBe(frame);
+  });
+
+  it("updates changed images, names, progress, and notices even when their source objects are reused", async () => {
+    const record = { ...example };
+    const run = { id: "new-pet", name: "New pet", stage: "posing" as const, updatedAt: "2026-09-09T10:00:00Z", previewDataUrl: example.previewDataUrl };
+    state = { ...state, pets: [record], runs: [run] };
+    plugin.openPetLibrary(); await Promise.resolve(); await Promise.resolve();
+    record.displayName = "New name";
+    record.description = "Updated description";
+    record.previewDataUrl = "data:image/png;base64,bmV3";
+    run.name = "New progress name";
+    run.previewDataUrl = record.previewDataUrl;
+    changed!(); await Promise.resolve(); await Promise.resolve();
+    const row = document.querySelector('[data-pet-choice="custom:willow"]')!;
+    expect(row.textContent).toContain("New nameUpdated description");
+    expect(row.querySelector("img")?.getAttribute("src")).toBe(record.previewDataUrl);
+    expect(document.querySelector(".bettergravity-pet-library__progress strong")?.textContent).toBe(run.name);
+    expect(document.querySelector(".bettergravity-pet-library__progress-image")?.getAttribute("src")).toBe(run.previewDataUrl);
+    state = { ...state, message: "A package needs attention.", runs: [{ ...run, stage: "error", message: "Try again." }] };
+    changed!(); await Promise.resolve(); await Promise.resolve();
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe(state.message);
+    expect(document.querySelector(".bettergravity-pet-library__progress")?.textContent).toContain("Try again.");
+    state = { ...state, message: "", pets: [], runs: [] };
+    changed!(); await Promise.resolve(); await Promise.resolve();
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    expect(document.querySelector(".bettergravity-pet-library__progress")).toBeNull();
+    expect(document.querySelector(".bettergravity-pet-library__empty")).not.toBeNull();
+  });
+
+  it("coalesces refresh notifications while a read is pending and still fetches the latest change", async () => {
+    plugin.openPetLibrary(); await Promise.resolve(); await Promise.resolve();
+    let finish!: (value: PetLibraryState) => void;
+    read.mockClear();
+    read.mockImplementationOnce(() => new Promise<PetLibraryState>(resolve => { finish = resolve; }));
+    changed!();
+    for (let index = 0; index < 12; index++) changed!();
+    expect(read).toHaveBeenCalledTimes(1);
+    const previous = state;
+    state = { ...state, pets: [{ ...example, displayName: "Latest name" }] };
+    finish(previous);
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('[data-pet-choice="custom:willow"] strong')?.textContent).toBe("Latest name");
+  });
+
+  it("does not replay pending library reads after disposal and rebuilds when the page is reopened", async () => {
+    plugin.openPetLibrary(); await Promise.resolve(); await Promise.resolve();
+    const first = preview();
+    plugin.closePetLibrary(); plugin.openPetLibrary();
+    await Promise.resolve(); await Promise.resolve();
+    expect(preview()).not.toBe(first);
+    expect(preview().getAttribute("aria-label")).toBe("Rocky: Idle");
+    let finish!: (value: PetLibraryState) => void;
+    read.mockClear();
+    read.mockImplementationOnce(() => new Promise<PetLibraryState>(resolve => { finish = resolve; }));
+    changed!(); changed!();
+    for (const callback of cleanup.reverse()) callback(); cleanup = [];
+    finish(state); await Promise.resolve(); await Promise.resolve();
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(document.getElementById("bettergravity-pets-view")).toBeNull();
   });
 
   it("cancels a pending creation when the user leaves the page", async () => {

@@ -2,6 +2,7 @@
 
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createPatcher } from "../src/world/hooks/patcher.js";
 
 const source = readFileSync("community/plugins/fork-chat/index.js", "utf8");
 const responseActions = 'button:is([aria-label="Copy"], [aria-label="Copied"], [aria-label="Good response"], [aria-label="Bad response"])';
@@ -19,6 +20,7 @@ beforeEach(() => {
   document.body.innerHTML = '<button data-testid="titlebar-more-actions"></button><main data-testid="conversation-view"><div class="overflow-y-auto"><div title="Open side-by-side view"></div><div data-testid="user-input-step"><div class="user-input-buttons-container"><button aria-label="Copy"></button></div></div><div class="flex flex-col" data-gemini-send-entering="true" data-gemini-revealing="true"><article role="article" aria-label="Agent response"><div data-testid="planner-response-text"></div></article><div class="flex w-full items-start"><div class="flex min-w-0"><button aria-label="Good response"></button><button aria-label="Bad response"></button><button aria-label="Copy"></button><button aria-label="Fork Conversation"></button></div></div></div></div></main>';
   view = document.querySelector<HTMLElement>("main")!;
   const plugin = {
+    patcher: createPatcher(cleanup => disposers.push(cleanup)),
     settings: { define: () => ({}), onChange: () => () => {} },
     ui: { contextMenu() {}, toast() {}, modal() {} },
     onDispose: (cleanup: () => void) => disposers.push(cleanup),
@@ -37,6 +39,37 @@ afterEach(() => {
 });
 
 describe("Fork Chat repeated work", () => {
+  it("does not scan settled history on every glide frame and still decorates paged responses", async () => {
+    vi.advanceTimersByTime(3000);
+    await settle();
+    const scroller = view.querySelector<HTMLElement>(".overflow-y-auto")!;
+    const scan = vi.spyOn(view, "querySelectorAll");
+    for (let frame = 0; frame < 20; frame++) {
+      scroller.dispatchEvent(new Event("scroll"));
+      vi.advanceTimersByTime(20);
+      await settle();
+    }
+    expect(scan).not.toHaveBeenCalledWith(responseActions);
+
+    const response = view.querySelector("[data-gemini-revealing]")!.cloneNode(true) as HTMLElement;
+    response.querySelectorAll("[data-fork-chat-btn]").forEach(button => button.remove());
+    scroller.prepend(response);
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle();
+    vi.advanceTimersByTime(20);
+    await settle();
+    expect(response.querySelectorAll("[data-fork-chat-btn]")).toHaveLength(1);
+    expect(response.hasAttribute("data-gemini-send-entering")).toBe(true);
+    expect(response.hasAttribute("data-gemini-revealing")).toBe(true);
+
+    const native = response.querySelector<HTMLElement>('[aria-label="Fork Conversation"]')!;
+    native.style.display = "";
+    await settle();
+    scroller.dispatchEvent(new Event("scroll"));
+    vi.advanceTimersByTime(20);
+    expect(native.style.display).toBe("none");
+  });
+
   it("does not rewrite settled controls or disturb the response animation gates", async () => {
     await settle();
     const before = view.innerHTML;
@@ -140,6 +173,20 @@ describe("Fork Chat repeated work", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("preserves other plugins' navigation hooks when Fork Chat reloads", () => {
+    const otherHook = vi.fn();
+    const otherPatcher = createPatcher(() => {});
+    const unpatch = otherPatcher.after(history, "replaceState", otherHook);
+    try {
+      stop();
+      history.replaceState(null, "", location.href);
+      expect(otherHook).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      unpatch();
+    }
+  });
+
   it("releases the previous scroller after navigation and binds the new one", async () => {
     vi.advanceTimersByTime(3000);
     await settle();
@@ -156,6 +203,14 @@ describe("Fork Chat repeated work", () => {
     expect(scan).not.toHaveBeenCalledWith(responseActions);
     next.querySelector(".overflow-y-auto")!.dispatchEvent(new Event("scroll"));
     vi.advanceTimersByTime(20);
+    expect(scan).not.toHaveBeenCalledWith(responseActions);
+    const response = next.querySelector("[data-gemini-revealing]")!.cloneNode(true) as HTMLElement;
+    response.querySelectorAll("[data-fork-chat-btn]").forEach(button => button.remove());
+    next.querySelector(".overflow-y-auto")!.append(response);
+    await settle();
+    next.querySelector(".overflow-y-auto")!.dispatchEvent(new Event("scroll"));
+    vi.advanceTimersByTime(20);
     expect(scan).toHaveBeenCalledWith(responseActions);
+    expect(response.querySelectorAll("[data-fork-chat-btn]")).toHaveLength(1);
   });
 });

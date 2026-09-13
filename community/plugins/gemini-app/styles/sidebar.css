@@ -663,6 +663,40 @@ html[data-sidebar-collapsed="true"] [role="navigation"][aria-label="Sidebar"] .g
   color: inherit;
 }
 
+/* Unread completed task notification dot placed before Chat / Work label */
+#gemini-experience-switch .gemini-experience-dot {
+  display: none;
+  grid-column: 1;
+  justify-self: end;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--gemini-accent, #3b82f6);
+  margin-right: -10px;
+  flex-shrink: 0;
+}
+
+#gemini-experience-switch .gemini-experience-dot[data-has-unread="true"] {
+  display: block;
+}
+
+/* Collapsed sidebar switcher unread indicator (button is already position: absolute) */
+
+#gemini-experience-switch .gemini-experience-collapsed-dot {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--gemini-accent, #3b82f6);
+}
+
+#gemini-experience-switch .gemini-experience-collapsed-btn[data-has-unread="true"] .gemini-experience-collapsed-dot {
+  display: block;
+}
+
 /* ---------------------------------------------------------------------------
  * Willow Custom Scrollbar (gemini-chat-scrollbar)
  * ------------------------------------------------------------------------- */

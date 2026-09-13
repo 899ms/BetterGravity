@@ -165,11 +165,59 @@ it("uses the native Stop control when no supported task store is available", asy
   expect(cursor().hidden).toBe(true); expect(glow().hidden).toBe(true);
 });
 
+it("leaves browser layout alone while ordinary response text and chat scroll change", async () => {
+  const checkVisibility = vi.fn(() => true);
+  Object.defineProperty(node("conversation-view"), "checkVisibility", { configurable: true, value: checkVisibility });
+  const scroller = document.createElement("div");
+  const response = document.createElement("article");
+  response.setAttribute("role", "article"); response.setAttribute("aria-label", "Agent response");
+  scroller.append(response); node("conversation-view").prepend(scroller);
+  const suggestions = document.createElement("div"); suggestions.setAttribute("data-mention-menu", "");
+  node("agent-input-box").append(suggestions);
+  await start();
+  await vi.advanceTimersByTimeAsync(100);
+  checkVisibility.mockClear();
+  for (let i = 0; i < 12; i++) {
+    const word = document.createElement("span"); word.textContent = `word ${i}`;
+    response.append(word);
+    const option = document.createElement("div"); option.setAttribute("role", "option"); option.textContent = `command ${i}`;
+    suggestions.replaceChildren(option);
+    scroller.dispatchEvent(new Event("scroll"));
+    await vi.advanceTimersByTimeAsync(20);
+  }
+  expect(checkVisibility.mock.calls.length).toBe(0);
+  // A popup mounted inside a response still needs native browser occlusion.
+  const popup = document.createElement("div"); popup.setAttribute("role", "menu");
+  response.append(popup); await vi.advanceTimersByTimeAsync(50);
+  expect(checkVisibility).toHaveBeenCalled();
+  checkVisibility.mockClear();
+  popup.textContent = "A larger popup"; await vi.advanceTimersByTimeAsync(50);
+  expect(checkVisibility).toHaveBeenCalled();
+  checkVisibility.mockClear();
+  popup.remove(); await vi.advanceTimersByTimeAsync(50);
+  expect(checkVisibility).toHaveBeenCalled();
+});
+
 it("does not keep control forever when tools run without a host task", async () => {
   await start(); emit({ activity: "External action" });
   expect(cursor().hidden).toBe(false);
   emit({ activity: null }); await vi.advanceTimersByTimeAsync(1100);
   expect(cursor().hidden).toBe(true); expect(glow().hidden).toBe(true);
+});
+
+it("checks conversation visibility once during a settled browser structure update", async () => {
+  const checkVisibility = vi.fn(() => true);
+  Object.defineProperty(node("conversation-view"), "checkVisibility", { configurable: true, value: checkVisibility });
+  await start(); await vi.advanceTimersByTimeAsync(100);
+  const popup = document.createElement("div"); popup.setAttribute("role", "menu");
+  checkVisibility.mockClear();
+  document.body.append(popup);
+  for (let index = 0; index < 6; index++) await Promise.resolve();
+  expect(checkVisibility).toHaveBeenCalledTimes(1);
+  checkVisibility.mockClear();
+  popup.remove();
+  for (let index = 0; index < 6; index++) await Promise.resolve();
+  expect(checkVisibility).toHaveBeenCalledTimes(1);
 });
 
 it("takes over and resumes through the floating control without forwarding its pointer to the page", async () => {

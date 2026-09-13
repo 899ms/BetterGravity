@@ -605,6 +605,8 @@ function forkPointFromBar(bar) {
 const USER_MESSAGE = '[data-testid="user-input-step"], [role="article"][aria-label="User message"], .user-input-buttons-container';
 // Match conversation actions, so plugin controls such as "Delete Fork Chat" stay visible.
 const NATIVE_FORK_BUTTON = '[data-testid="conversation-view"] button:is([aria-label="Fork" i], [aria-label="Fork Conversation" i], [aria-label^="Fork from " i]):not([data-fork-chat-btn]):not([data-fork-titlebar-btn])';
+const TURN_ACTIONS = '.flex.w-full.items-start, [data-gemini-turn-actions="true"]';
+const TURN_STRUCTURE = `${TURN_ACTIONS}, ${NATIVE_FORK_BUTTON}, button:is([aria-label="Copy"], [aria-label="Copied"], [aria-label="Good response"], [aria-label="Bad response"]), [role="article"]:not([aria-label="User message"]), div[title="Open side-by-side view"], div.w-full.bg-background.border-b.border-border`;
 
 function hideNativeForkButton(button) {
   if (button.style.display !== "none") button.style.display = "none";
@@ -812,6 +814,7 @@ function setupObservers() {
   let scheduled = false;
   let scanFrame = 0;
   let boundScroller = null;
+  let boundView = null;
   const retryTimers = new Set();
   const later = (callback, delay) => {
     const timer = setTimeout(() => {
@@ -827,26 +830,60 @@ function setupObservers() {
       scanFrame = requestAnimationFrame(() => {
         scanFrame = 0;
         scheduled = false;
-        if (!disposed) scanAll();
+        if (!disposed) {
+          bindScroller();
+          scanAll();
+          // The scan has already accounted for pending DOM changes and its own
+          // idempotent decoration. Do not schedule a second scan for those writes.
+          turnObserver.takeRecords();
+        }
       });
     } else {
       scheduled = false;
+      bindScroller();
       scanAll();
+      turnObserver.takeRecords();
     }
   };
+
+  const onTurnChanges = (records) => {
+    if (disposed) return;
+    const relevant = records.some(record => {
+      const target = record.target;
+      if (target.closest?.(TURN_ACTIONS)) return true;
+      if (record.type === "attributes") return target.matches(TURN_STRUCTURE);
+      for (const nodes of [record.addedNodes, record.removedNodes]) {
+        for (const node of nodes) {
+          if (node.nodeType === Node.ELEMENT_NODE && (node.matches(TURN_STRUCTURE) || node.firstElementChild && node.querySelector(TURN_STRUCTURE))) return true;
+        }
+      }
+      return false;
+    });
+    if (relevant) scheduleScan();
+  };
+  const turnObserver = new MutationObserver(onTurnChanges);
+  // Scrolling only needs a scan if it coincides with changed controls, such as
+  // paged history. A sent-message glide must not rescan every settled response.
+  const onScroll = () => onTurnChanges(turnObserver.takeRecords());
 
   const bindScroller = () => {
     const view = document.querySelector('[data-testid="conversation-view"]');
     const scroller = view?.querySelector('.overflow-y-auto') || view;
-    if (boundScroller === scroller) return;
+    if (boundScroller === scroller && boundView === view) return;
     if (boundScroller) {
-      boundScroller.removeEventListener("scroll", scheduleScan);
+      boundScroller.removeEventListener("scroll", onScroll);
       delete boundScroller.dataset.hasForkScroll;
     }
+    turnObserver.disconnect();
+    boundView = view;
     boundScroller = scroller;
+    if (view) turnObserver.observe(view, {
+      subtree: true, childList: true, attributes: true,
+      attributeFilter: ["class", "style", "aria-label", "data-testid", "data-gemini-turn-actions", "data-fork-chat-btn", "data-fork-hidden", "title", "role"]
+    });
     if (scroller) {
       scroller.dataset.hasForkScroll = "true";
-      scroller.addEventListener("scroll", scheduleScan, { passive: true });
+      scroller.addEventListener("scroll", onScroll, { passive: true });
     }
   };
 
@@ -860,6 +897,7 @@ function setupObservers() {
   };
 
   const onNavChange = () => {
+    if (disposed) return;
     const currentUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
     if (currentUrl !== lastObservedUrl) {
       lastObservedUrl = currentUrl;
@@ -868,30 +906,31 @@ function setupObservers() {
   };
 
   // Intercept HTML5 History pushState and replaceState used by Antigravity's router
-  let origPushState = null;
-  let origReplaceState = null;
+  const historyCleanups = [];
   if (typeof window !== "undefined" && window.history) {
-    origPushState = window.history.pushState;
-    if (typeof origPushState === "function") {
-      window.history.pushState = function (...args) {
-        const res = origPushState.apply(this, args);
+    for (const method of ["pushState", "replaceState"]) {
+      if (typeof window.history[method] !== "function") continue;
+      // The shared patcher removes only this plugin's hook on reload, leaving
+      // the browser's pane and navigation hooks installed on the same method.
+      if (typeof plugin.patcher?.after === "function") {
+        plugin.patcher.after(window.history, method, onNavChange);
+        continue;
+      }
+      const original = window.history[method];
+      const patched = function (...args) {
+        const res = original.apply(this, args);
         onNavChange();
         return res;
       };
-    }
-    origReplaceState = window.history.replaceState;
-    if (typeof origReplaceState === "function") {
-      window.history.replaceState = function (...args) {
-        const res = origReplaceState.apply(this, args);
-        onNavChange();
-        return res;
-      };
+      window.history[method] = patched;
+      historyCleanups.push(() => { if (window.history[method] === patched) window.history[method] = original; });
     }
   }
 
   bodyObserver = new MutationObserver((records) => {
     if (disposed) return;
     const menuRoots = new Set();
+    let mountedConversation = false;
     // Immediately hide native Antigravity fork buttons synchronously before next paint
     for (let i = 0; i < records.length; i += 1) {
       const menu = records[i].target.closest?.('[role="menuitem"]');
@@ -900,6 +939,7 @@ function setupObservers() {
       for (let j = 0; j < added.length; j += 1) {
         const node = added[j];
         if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.matches('[data-testid="conversation-view"]') || node.firstElementChild && node.querySelector('[data-testid="conversation-view"]')) mountedConversation = true;
           if (node.matches(NATIVE_FORK_BUTTON)) {
             hideNativeForkButton(node);
           } else if (node.querySelectorAll) {
@@ -914,6 +954,10 @@ function setupObservers() {
     }
 
     for (const root of menuRoots) if (root.isConnected) decorateMenus(root);
+    if (mountedConversation || boundView && !boundView.isConnected) {
+      bindScroller();
+      scheduleScan();
+    }
 
     const currentUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
     if (currentUrl && currentUrl !== lastObservedUrl) {
@@ -991,10 +1035,12 @@ function setupObservers() {
     for (const timer of retryTimers) clearTimeout(timer);
     retryTimers.clear();
     if (boundScroller) {
-      boundScroller.removeEventListener("scroll", scheduleScan);
+      boundScroller.removeEventListener("scroll", onScroll);
       delete boundScroller.dataset.hasForkScroll;
       boundScroller = null;
     }
+    turnObserver.disconnect();
+    boundView = null;
     bodyObserver?.disconnect();
     clearInterval(periodicCheck);
     if (typeof document !== "undefined") {
@@ -1003,8 +1049,7 @@ function setupObservers() {
       document.querySelectorAll("button[data-fork-chat-btn], button[data-fork-titlebar-btn]").forEach((b) => b.remove());
     }
     if (typeof window !== "undefined" && window.history) {
-      if (origPushState) window.history.pushState = origPushState;
-      if (origReplaceState) window.history.replaceState = origReplaceState;
+      for (const cleanup of historyCleanups) cleanup();
       window.removeEventListener("popstate", onNavChange);
       window.removeEventListener("hashchange", onNavChange);
     }

@@ -398,6 +398,77 @@ describe("Gemini App repeated work", () => {
     expect(resizes.size).toBe(0);
   });
 
+  it("releases bubble size observations as conversations leave, including while hidden", async () => {
+    startPlugin();
+    for (let conversation = 0; conversation < 12; conversation++) {
+      const view = document.createElement("div");
+      view.hidden = true;
+      view.innerHTML = Array.from({ length: 4 }, (_, index) =>
+        `<div data-testid="user-input-step"><div data-testid="lifted-context-menu-trigger"><div class="bg-card"><div class="flex-1"><div class="whitespace-pre-wrap">Message ${index}</div></div></div></div></div>`
+      ).join("");
+      document.body.append(view);
+      for (const step of view.querySelectorAll<HTMLElement>('[data-testid="user-input-step"]')) mount('[data-testid="user-input-step"]', step);
+      await settle();
+      expect(resizes.size).toBe(4);
+      view.remove();
+      // No ResizeObserver notification or animation frame is needed to release
+      // zero-sized, hidden content that Chromium otherwise keeps observing.
+      await settle();
+      expect(resizes.size).toBe(0);
+    }
+  });
+
+  it("reobserves a reattached bubble without replacing its controls or expansion state", async () => {
+    startPlugin();
+    document.body.innerHTML = '<div data-testid="user-input-step"><div data-testid="lifted-context-menu-trigger"><div class="bg-card"><div class="flex-1"><div class="whitespace-pre-wrap">A long message</div></div></div></div></div>';
+    const step = document.querySelector<HTMLElement>('[data-testid="user-input-step"]')!;
+    const text = step.querySelector<HTMLElement>(".whitespace-pre-wrap")!;
+    let height = 200;
+    vi.spyOn(text, "getBoundingClientRect").mockImplementation(() => ({ height }) as DOMRect);
+    mount('[data-testid="user-input-step"]', step);
+    await settle();
+    const button = step.querySelector<HTMLButtonElement>(".willow-bubble-toggle-btn")!;
+    button.click();
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    step.remove();
+    await settle();
+    expect(resizes.has(text)).toBe(false);
+
+    height = 344;
+    document.body.append(step);
+    // plugin.dom.observe intentionally delivers each DOM node only once.
+    await settle();
+    expect(resizes.has(text)).toBe(true);
+    expect(step.querySelector(".willow-bubble-toggle-btn")).toBe(button);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(step.querySelector<HTMLElement>(".flex-1")!.style.getPropertyValue("--willow-expanded-height")).toBe("344px");
+    button.click();
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    height = 96;
+    resizes.get(text)?.();
+    await settle();
+    expect(step.querySelector(".willow-bubble-toggle-btn")).toBeNull();
+  });
+
+  it("keeps bubble observations through reparenting and ignores ordinary response edits", async () => {
+    startPlugin();
+    document.body.innerHTML = '<div id="first"><div data-testid="user-input-step"><div data-testid="lifted-context-menu-trigger"><div class="bg-card"><div class="flex-1"><div class="whitespace-pre-wrap">Message</div></div></div></div></div></div><div id="second"></div><div id="response"></div>';
+    const step = document.querySelector<HTMLElement>('[data-testid="user-input-step"]')!;
+    const text = step.querySelector<HTMLElement>(".whitespace-pre-wrap")!;
+    const measure = vi.spyOn(text, "getBoundingClientRect").mockReturnValue({ height: 200 } as DOMRect);
+    mount('[data-testid="user-input-step"]', step);
+    await settle();
+    const resize = resizes.get(text);
+    measure.mockClear();
+    document.getElementById("second")!.append(step);
+    for (let token = 0; token < 12; token++) {
+      document.getElementById("response")!.innerHTML = `<p>Response <span>${token}</span></p>`;
+      await settle();
+    }
+    expect(resizes.get(text)).toBe(resize);
+    expect(measure).not.toHaveBeenCalled();
+  });
+
   it("removes native sidebar handlers and restores both live React fibers on dispose", () => {
     startPlugin();
     document.body.innerHTML = '<button data-testid="sidebar-toggle" aria-label="Toggle Sidebar" aria-expanded="true"></button><div class="bg-sidebar"><button class="group/headerbtn"><span class="truncate">Project</span></button></div>';

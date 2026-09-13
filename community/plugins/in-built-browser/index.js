@@ -509,6 +509,8 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 // Willow's painted tooltip has no ARIA role; its aria-hidden wrapper lives in
 // a persistent full-window container. Track each pane, not that empty container.
 const OVERLAYS = '[role="tooltip"]:not(.willow-tooltip-description), .willow-tooltip-pane, [data-base-ui-tooltip-popup], [data-radix-tooltip-content], [role="dialog"], [role="menu"], .react-tooltip, .gemini-tooltip, .bettergravity-pet, .bettergravity-pet-tray, .bettergravity-pet-chat, [data-floating-ui-portal], [data-base-ui-portal]';
+const CHAT_CONTENT = '[role="article"][aria-label="Agent response"], [data-testid="agent-input-box"]';
+const BROWSER_STRUCTURE = `${OVERLAYS}, [data-testid="conversation-view"], [data-testid="agent-input-box"], button[data-tab-id="terminal"], [data-aux-pane-open], [data-tooltip-id="input-send-button-cancel-tooltip"]`;
 let noteStyles = {};
 let originalStyle;
 let previewTimer;
@@ -527,12 +529,30 @@ const options = plugin.settings.define({
 });
 
 function currentContext() { return location.pathname.match(/\/c\/([^/]+)/)?.[1] || location.pathname || "default"; }
+function conversationIsVisible(conversation) {
+  const check = conversation.checkVisibility;
+  if (!check) return true;
+  const nativeCheck = () => check.call(conversation, { checkVisibilityCSS: true });
+  if (check !== Element.prototype.checkVisibility || conversation.getRootNode() !== document) return nativeCheck();
+  // checkVisibility also flushes layout. A normal, connected block/flex/grid
+  // ancestor chain already guarantees this chat has a box; style reads suffice
+  // and let its new messages finish mounting before layout is needed. Leave
+  // display locking, hidden/contents boxes, special HTML parents, shadow roots,
+  // and overridden visibility checks to the native implementation.
+  for (let node = conversation; node; node = node.parentElement) {
+    if (!/^(DIV|MAIN|SECTION|ASIDE|BODY|HTML)$/.test(node.tagName)) return nativeCheck();
+    const style = getComputedStyle(node);
+    if (!/^(block|flex|grid|flow-root)$/.test(style.display) || style.visibility !== "visible" ||
+      style.contentVisibility && style.contentVisibility !== "visible") return nativeCheck();
+  }
+  return true;
+}
 function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
   // These full-page views retain /c/:id while covering the conversation.
   if (!id || !conversation || document.body.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
-  if (conversation.checkVisibility && !conversation.checkVisibility({ checkVisibilityCSS: true })) return null;
+  if (!conversationIsVisible(conversation)) return null;
   return id;
 }
 function nativePaneOpen() {
@@ -1044,6 +1064,12 @@ function watchOverlays() {
   for (const node of nodes) overlayObserver?.observe(node, { attributes: true, attributeFilter: ["style", "class", "hidden", "aria-hidden", "data-state", "data-pet-dragging"] });
 }
 function onLayoutMotion(event) { if (root && (event.target?.contains?.(viewport) || open && overlayNodes.some(node => node.contains(event.target)))) scheduleBounds(); }
+function onDocumentScroll(event) {
+  const target = event.target;
+  // Chat scrolling does not move the browser beside it. Ancestor scrolling and
+  // floating overlays still change the native page's position or occlusion.
+  if (target === document || layoutNodes.includes(target) || open && overlayNodes.some(node => node.contains(target) || target?.contains?.(node))) scheduleBounds();
+}
 function onVisibility() { if (document.hidden) finishResize(true); scheduleBounds(); }
 function syncBounds() {
   if (frame) cancelAnimationFrame(frame);
@@ -1593,7 +1619,7 @@ document.addEventListener("keydown", onKey, true);
 document.addEventListener("click", onPaneToggle, true);
 window.addEventListener("resize", scheduleBounds);
 document.addEventListener("visibilitychange", onVisibility);
-document.addEventListener("scroll", scheduleBounds, { capture: true, passive: true });
+document.addEventListener("scroll", onDocumentScroll, { capture: true, passive: true });
 const motionEvents = ["transitionrun", "transitionend", "transitioncancel", "animationstart", "animationend", "animationcancel"];
 for (const name of motionEvents) document.addEventListener(name, onLayoutMotion, true);
 window.addEventListener("popstate", syncContext);
@@ -1601,7 +1627,23 @@ plugin.patcher.before?.(history, "pushState", rememberCurrentPane);
 plugin.patcher.before?.(history, "replaceState", rememberCurrentPane);
 plugin.patcher.after(history, "pushState", () => { queueMicrotask(syncContext); });
 plugin.patcher.after(history, "replaceState", () => { queueMicrotask(syncContext); });
-const occlusion = new MutationObserver(() => {
+function changesBrowserStructure(records) {
+  for (const record of records) {
+    const target = record.target;
+    if (record.type !== "childList" || !target.closest?.(CHAT_CONTENT) || target.closest(OVERLAYS)) return true;
+    // Text and command suggestions inside chat do not change browser context.
+    // Keep popup insertion/removal, native host mounts, and the Stop-button
+    // fallback observable even when they occur inside one of those subtrees.
+    for (const changed of [record.addedNodes, record.removedNodes]) {
+      for (const node of changed) {
+        if (node.nodeType === 1 && (node.matches(BROWSER_STRUCTURE) || node.firstElementChild && node.querySelector(BROWSER_STRUCTURE))) return true;
+      }
+    }
+  }
+  return false;
+}
+const occlusion = new MutationObserver(records => {
+  if (!changesBrowserStructure(records)) return;
   syncContext();
   if (activeConversationContext() !== context) return;
   if (!root || !root.isConnected || !toolbar?.isConnected || body !== toolbar.nextElementSibling) {
@@ -1616,7 +1658,7 @@ plugin.onDispose(() => {
   disposed = true; clearTimeout(previewTimer); if (frame) cancelAnimationFrame(frame);
   suspendView();
   if (plugin.browser?.available) plugin.browser.request("detach", { context }).catch(() => {});
-  document.removeEventListener("keydown", onKey, true); document.removeEventListener("click", onPaneToggle, true); window.removeEventListener("resize", scheduleBounds); document.removeEventListener("visibilitychange", onVisibility); document.removeEventListener("scroll", scheduleBounds, true); window.removeEventListener("popstate", syncContext);
+  document.removeEventListener("keydown", onKey, true); document.removeEventListener("click", onPaneToggle, true); window.removeEventListener("resize", scheduleBounds); document.removeEventListener("visibilitychange", onVisibility); document.removeEventListener("scroll", onDocumentScroll, true); window.removeEventListener("popstate", syncContext);
   for (const name of motionEvents) document.removeEventListener(name, onLayoutMotion, true);
   occlusion.disconnect(); viewObserver.disconnect(); conversationObserver.disconnect(); unmount();
 });
