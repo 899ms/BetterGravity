@@ -73,7 +73,8 @@ the installer will report **Antigravity changed** next time you open it, and
 
 **The installer says Antigravity was not found.**
 Use **Choose a different location** and pick the folder containing
-`Antigravity.exe` (Windows) or `/Applications/Antigravity.app` (macOS). Standard
+`Antigravity.exe` (Windows), `/Applications/Antigravity.app` (macOS), or
+`/opt/Antigravity` / `~/.local/share/Antigravity` (Linux). Standard
 locations are checked automatically.
 
 **It says the version has not been marked compatible.**
@@ -83,9 +84,10 @@ not been tested against rather than patching hopefully. Please
 Antigravity version.
 
 **Antigravity opens but BetterGravity is not in Settings.**
-Check `%APPDATA%\BetterGravity\runtime.log`. If the runtime failed, Antigravity
-starts as though BetterGravity were not installed — that is deliberate. The log
-says what went wrong.
+Check `runtime.log` in your BetterGravity content directory (`%APPDATA%\BetterGravity\` on Windows,
+`~/Library/Application Support/BetterGravity/` on macOS, or `~/.config/BetterGravity/` on Linux).
+If the runtime failed, Antigravity starts as though BetterGravity were not installed — that is deliberate.
+The log says what went wrong.
 
 **A theme or plugin is not showing up.**
 Themes must end in `.css`. Plugins must be a folder containing `plugin.json`,

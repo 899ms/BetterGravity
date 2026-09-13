@@ -11,7 +11,7 @@ Drop in a `.css` file and the interface restyles instantly. Write a plugin in pl
 [![Checks](https://github.com/YashjitPal/BetterGravity/actions/workflows/ci.yml/badge.svg)](https://github.com/YashjitPal/BetterGravity/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Antigravity 2.x](https://img.shields.io/badge/Antigravity-2.x-FFC799)](https://antigravity.google)
-[![Platform: Windows | macOS](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-0078D4)](docs/installation.md)
+[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0078D4)](docs/installation.md)
 
 [Install](docs/installation.md) · [Make a theme](docs/themes.md) ·
 [Make a plugin](docs/plugins.md) · [How it works](docs/architecture.md) ·
@@ -76,7 +76,7 @@ Test web applications, inspect live DOM trees, and let your agent browse the web
 
 ## Install
 
-Windows & macOS, Antigravity 2.x.
+Windows, macOS & Linux, Antigravity 2.x.
 
 Download the installer from [releases](https://github.com/YashjitPal/BetterGravity/releases), run it, and press **Install**. Then open Antigravity and find **BetterGravity** in Settings.
 
@@ -206,7 +206,7 @@ your credentials.
 
 ## Status
 
-Windows & macOS, Antigravity 2.x. In-app community catalogue browsing and 1-click installation are live. Submissions for new community themes and plugins are open via pull request. Binaries are currently unsigned (Windows SmartScreen notice applies on first run). See the [roadmap](docs/roadmap.md).
+Windows, macOS & Linux, Antigravity 2.x. In-app community catalogue browsing and 1-click installation are live. Submissions for new community themes and plugins are open via pull request. Binaries are currently unsigned (Windows SmartScreen and macOS Gatekeeper notices apply on first run). See the [roadmap](docs/roadmap.md).
 
 ## Licence
 

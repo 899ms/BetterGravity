@@ -67,6 +67,6 @@ directly. These are the equivalents that do work here.
 - The separately installed Antigravity IDE, which is a different application
   from the launcher this patches and needs its own approach.
 - macOS support for application bundle layout, process management, and Keychain certificate trust. **Done.**
-- Linux, once there is a reason to believe the host layout matches.
+- Linux support for AppImage, DEB, tar.gz, host path discovery, and POSIX process management. **Done.**
 - A safe mode that starts Antigravity with every plugin disabled, for recovering
   from a plugin that misbehaves badly enough to make the panel unreachable.
