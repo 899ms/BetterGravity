@@ -45,8 +45,12 @@ plugin, setting, and saved plugin value.
 ## Where things end up
 
 ```text
-%APPDATA%\BetterGravity\        themes, plugins, settings, storage, runtime.log
-<Antigravity>\resources\
+Windows: %APPDATA%\BetterGravity\
+macOS:   ~/Library/Application Support/BetterGravity/
+Linux:   ~/.config/BetterGravity/
+         (themes, plugins, settings, storage, runtime.log)
+
+<Antigravity>\resources\ (or Contents/Resources on macOS)
 ├── app.asar                    the BetterGravity bootstrap
 ├── _app.asar                   the original Antigravity bundle
 └── .bettergravity\

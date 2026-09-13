@@ -49,6 +49,13 @@ jobs:
             files: |
               release*/*.dmg
               release*/*.zip
+          - os: ubuntu-latest
+            name: linux
+            build: pnpm build:installer:linux
+            files: |
+              release*/*.AppImage
+              release*/*.deb
+              release*/*.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

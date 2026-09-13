@@ -8,7 +8,7 @@ import { closeAntigravity } from "./process.js";
 import { installationPaths, type InstallationPaths } from "./paths.js";
 
 export { findAntigravityInstallation, installationPaths, unpackedPath } from "./paths.js";
-export { closeAntigravity, parseDarwinProcessIds } from "./process.js";
+export { closeAntigravity, parseDarwinProcessIds, parsePosixProcessIds } from "./process.js";
 export { bootstrapSource } from "./bootstrap.js";
 
 /**

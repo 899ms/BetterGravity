@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDarwinProcessIds, parseProcessIds } from "../src/native/process.js";
+import { parseDarwinProcessIds, parsePosixProcessIds, parseProcessIds } from "../src/native/process.js";
 
 describe("parseProcessIds", () => {
   it("reads the ids PowerShell prints, one per line", () => {
@@ -30,7 +30,7 @@ describe("parseProcessIds", () => {
   });
 });
 
-describe("parseDarwinProcessIds", () => {
+describe("parsePosixProcessIds", () => {
   const targetApp = "/Applications/Antigravity.app";
   const psOutput = [
     "  101 /Applications/Antigravity.app/Contents/MacOS/Antigravity",
@@ -42,18 +42,32 @@ describe("parseDarwinProcessIds", () => {
 
   it("matches processes running out of the specific app bundle", () => {
     expect(parseDarwinProcessIds(psOutput, targetApp)).toEqual([101, 102, 401]);
+    expect(parsePosixProcessIds(psOutput, targetApp)).toEqual([101, 102, 401]);
   });
 
   it("excludes process ids passed in the exclusion list", () => {
-    expect(parseDarwinProcessIds(psOutput, targetApp, [401])).toEqual([101, 102]);
+    expect(parsePosixProcessIds(psOutput, targetApp, [401])).toEqual([101, 102]);
   });
 
   it("ignores unrelated apps and distinct installations elsewhere", () => {
-    expect(parseDarwinProcessIds(psOutput, "/Users/test/Applications/Antigravity.app")).toEqual([301]);
-    expect(parseDarwinProcessIds(psOutput, "/Applications/NonExistent.app")).toEqual([]);
+    expect(parsePosixProcessIds(psOutput, "/Users/test/Applications/Antigravity.app")).toEqual([301]);
+    expect(parsePosixProcessIds(psOutput, "/Applications/NonExistent.app")).toEqual([]);
   });
 
   it("returns nothing for empty ps output", () => {
-    expect(parseDarwinProcessIds("", targetApp)).toEqual([]);
+    expect(parsePosixProcessIds("", targetApp)).toEqual([]);
+  });
+
+  it("matches Linux processes running from /opt/Antigravity or user home", () => {
+    const linuxPsOutput = [
+      "  501 /opt/Antigravity/antigravity --enable-features=WaylandWindowDecorations",
+      "  502 /opt/Antigravity/antigravity --type=zygote",
+      "  503 /opt/Antigravity/antigravity --type=gpu-process",
+      "  601 /home/user/.local/share/Antigravity/antigravity",
+      "  701 /usr/bin/bash"
+    ].join("\n");
+
+    expect(parsePosixProcessIds(linuxPsOutput, "/opt/Antigravity")).toEqual([501, 502, 503]);
+    expect(parsePosixProcessIds(linuxPsOutput, "/home/user/.local/share/Antigravity")).toEqual([601]);
   });
 });

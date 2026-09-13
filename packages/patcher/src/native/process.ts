@@ -25,10 +25,10 @@ export function antigravityProcessIds(installationPath: string, exclude: readonl
     }
   }
 
-  if (process.platform === "darwin") {
+  if (process.platform === "darwin" || process.platform === "linux") {
     try {
       const output = execFileSync("ps", ["-eo", "pid=,args="], { encoding: "utf8" });
-      return parseDarwinProcessIds(output, installationPath, exclude);
+      return parsePosixProcessIds(output, installationPath, exclude);
     } catch {
       return [];
     }
@@ -49,8 +49,8 @@ function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Parses `ps -eo pid=,args=` output on macOS, matching processes belonging to the target installation. */
-export function parseDarwinProcessIds(output: string, installationPath: string, exclude: readonly number[] = []): readonly number[] {
+/** Parses `ps -eo pid=,args=` output on macOS and Linux, matching processes belonging to the target installation. */
+export function parsePosixProcessIds(output: string, installationPath: string, exclude: readonly number[] = []): readonly number[] {
   const target = installationPath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
   const targetRegex = new RegExp(`(?:^|[\\s"'])${escapeRegex(target)}(?:[\\s/"']|$)`);
   const results: number[] = [];
@@ -74,6 +74,8 @@ export function parseDarwinProcessIds(output: string, installationPath: string, 
 
   return results;
 }
+
+export const parseDarwinProcessIds = parsePosixProcessIds;
 
 function terminate(processId: number, force: boolean): void {
   if (process.platform === "win32") {
@@ -115,7 +117,12 @@ export async function closeAntigravity(installationPath: string, onProgress: Pro
   }
   for (const processId of running()) terminate(processId, true);
   if (running().length > 0) {
-    const manager = process.platform === "darwin" ? "Activity Monitor" : "Task Manager";
+    const manager =
+      process.platform === "darwin"
+        ? "Activity Monitor"
+        : process.platform === "linux"
+          ? "System Monitor"
+          : "Task Manager";
     throw new Error(`Antigravity could not be closed automatically. Close it from ${manager} and try again.`);
   }
 }

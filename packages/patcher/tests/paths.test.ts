@@ -41,6 +41,28 @@ describe("installationPaths", () => {
     expect(fromResources.root).toBe(bundle);
     expect(fromResources.resources).toBe(path.join(bundle, "Contents", "Resources"));
   });
+
+  it("resolves Linux installation layouts under resources", () => {
+    const linuxPaths = installationPaths(path.join("/", "opt", "Antigravity"));
+    expect(linuxPaths.root).toBe(path.join("/", "opt", "Antigravity"));
+    expect(linuxPaths.resources).toBe(path.join("/", "opt", "Antigravity", "resources"));
+    expect(linuxPaths.executable).toBe(path.join("/", "opt", "Antigravity", "antigravity"));
+    expect(path.basename(linuxPaths.currentAsar)).toBe("app.asar");
+    expect(linuxPaths.currentAsar).toBe(path.join(linuxPaths.resources, "app.asar"));
+    expect(linuxPaths.originalAsar).toBe(path.join(linuxPaths.resources, "_app.asar"));
+    expect(linuxPaths.runtimeRoot).toBe(path.join(linuxPaths.resources, ".bettergravity"));
+  });
+
+  it("normalizes user selections pointing directly to the Linux binary or resources", () => {
+    const root = path.join("/", "opt", "Antigravity");
+    const fromBinary = installationPaths(path.join(root, "antigravity"));
+    const fromResources = installationPaths(path.join(root, "resources"));
+
+    expect(fromBinary.root).toBe(root);
+    expect(fromBinary.resources).toBe(path.join(root, "resources"));
+    expect(fromResources.root).toBe(root);
+    expect(fromResources.resources).toBe(path.join(root, "resources"));
+  });
 });
 
 // Regression: the patcher reads through original-fs, which cannot see inside an

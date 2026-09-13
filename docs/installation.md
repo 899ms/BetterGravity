@@ -1,6 +1,6 @@
 # Installing BetterGravity
 
-Windows & macOS, Antigravity 2.x.
+Windows, macOS & Linux, Antigravity 2.x.
 
 ## Install
 
@@ -13,12 +13,20 @@ Windows & macOS, Antigravity 2.x.
 4. Reopen Antigravity. BetterGravity is now in **Settings → BetterGravity**.
 
 ### macOS
-1. Download `BetterGravity-Installer-<version>.dmg` from the
+1. Download `BetterGravity-Installer-<version>-<arch>.dmg` from the
    [releases page](https://github.com/YashjitPal/BetterGravity/releases).
 2. Open the DMG and launch BetterGravity Installer. If macOS Gatekeeper warns
    that the developer cannot be verified, right-click (or Control-click) the app
    and choose **Open**.
 3. The installer automatically discovers `/Applications/Antigravity.app`. Press **Install**.
+4. Reopen Antigravity. BetterGravity is now in **Settings → BetterGravity**.
+
+### Linux
+1. Download `BetterGravity-Installer-<version>-<arch>.AppImage` (or `.deb` / `.tar.gz`) from the
+   [releases page](https://github.com/YashjitPal/BetterGravity/releases).
+2. For AppImage: make it executable (`chmod +x BetterGravity-Installer-*.AppImage`) and run it.
+   For Debian/Ubuntu: `sudo dpkg -i BetterGravity-Installer-*.deb`.
+3. The installer automatically discovers `/opt/Antigravity` or `~/.local/share/Antigravity`. Press **Install**.
 4. Reopen Antigravity. BetterGravity is now in **Settings → BetterGravity**.
 
 The installer closes Antigravity if it is running, backs up the original program
@@ -33,6 +41,7 @@ Your themes, plugins, settings, and saved plugin data are kept, so reinstalling
 picks up where you left off. To remove those too, delete:
 - Windows: `%APPDATA%\BetterGravity`
 - macOS: `~/Library/Application Support/BetterGravity`
+- Linux: `~/.config/BetterGravity`
 
 ## Where things are kept
 
@@ -40,6 +49,7 @@ picks up where you left off. To remove those too, delete:
 BetterGravity content directory:
   Windows: %APPDATA%\BetterGravity\
   macOS:   ~/Library/Application Support/BetterGravity/
+  Linux:   ~/.config/BetterGravity/
 ├── themes/           your .css files
 ├── plugins/          one folder per plugin
 ├── settings.json     what is switched on

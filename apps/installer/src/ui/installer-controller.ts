@@ -107,9 +107,12 @@ export class InstallerController {
     byId<HTMLElement>("hostVersion").textContent = this.installation.antigravityVersion
       ? `Version ${this.installation.antigravityVersion}`
       : "Antigravity not detected";
-    const fallbackPath = window.betterGravityDesktop?.platform === "darwin"
-      ? "Looking in /Applications"
-      : "Looking in standard Windows locations";
+    const fallbackPath =
+      window.betterGravityDesktop?.platform === "darwin"
+        ? "Looking in /Applications"
+        : window.betterGravityDesktop?.platform === "linux"
+          ? "Looking in /opt and ~/.local/share"
+          : "Looking in standard Windows locations";
     byId<HTMLElement>("hostPath").textContent = this.installation.path ?? fallbackPath;
 
     this.renderActions(actions);

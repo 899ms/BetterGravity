@@ -19,11 +19,40 @@ export const RUNTIME_DIRECTORY_NAME = ".bettergravity";
 export const MARKER_NAME = ".bettergravity.json";
 
 function normalizeRoot(root: string): string {
-  const normalized = path.normalize(root);
-  if (path.basename(normalized) === "Resources" && path.basename(path.dirname(normalized)) === "Contents") {
-    return path.dirname(path.dirname(normalized));
+  let normalized = path.normalize(root);
+  try {
+    if (fs.existsSync(normalized)) {
+      const lstat = fs.lstatSync(normalized);
+      if (lstat.isSymbolicLink()) {
+        normalized = fs.realpathSync(normalized);
+      }
+      if (fs.statSync(normalized).isFile()) {
+        return path.dirname(normalized);
+      }
+    }
+  } catch {
+    // If lstat / stat fails, continue
   }
-  if (path.basename(normalized) === "Contents") {
+
+  const base = path.basename(normalized);
+  const baseLower = base.toLowerCase();
+
+  // If the user selected the binary directly
+  if (baseLower === "antigravity.exe") {
+    return path.dirname(normalized);
+  }
+  if (baseLower === "antigravity" && path.basename(path.dirname(normalized)).toLowerCase() === "antigravity") {
+    return path.dirname(normalized);
+  }
+
+  if (baseLower === "resources") {
+    const parent = path.dirname(normalized);
+    if (path.basename(parent) === "Contents") {
+      return path.dirname(parent);
+    }
+    return parent;
+  }
+  if (base === "Contents") {
     return path.dirname(normalized);
   }
   return normalized;
@@ -33,11 +62,45 @@ function isMacAppBundle(root: string): boolean {
   return root.endsWith(".app") || fs.existsSync(path.join(root, "Contents", "Resources"));
 }
 
+function resolveExecutable(root: string, isMac: boolean): string {
+  if (isMac) {
+    return path.join(root, "Contents", "MacOS", "Antigravity");
+  }
+
+  if (process.platform === "win32") {
+    if (fs.existsSync(path.join(root, "Antigravity.exe"))) {
+      return path.join(root, "Antigravity.exe");
+    }
+    if (fs.existsSync(path.join(root, "antigravity"))) {
+      return path.join(root, "antigravity");
+    }
+    if (fs.existsSync(path.join(root, "Antigravity"))) {
+      return path.join(root, "Antigravity");
+    }
+    if (root.startsWith("/") || root.startsWith("\\opt") || root.startsWith("/opt")) {
+      return path.join(root, "antigravity");
+    }
+    return path.join(root, "Antigravity.exe");
+  }
+
+  // Linux and other POSIX
+  if (fs.existsSync(path.join(root, "antigravity"))) {
+    return path.join(root, "antigravity");
+  }
+  if (fs.existsSync(path.join(root, "Antigravity"))) {
+    return path.join(root, "Antigravity");
+  }
+  if (fs.existsSync(path.join(root, "Antigravity.exe"))) {
+    return path.join(root, "Antigravity.exe");
+  }
+  return path.join(root, "antigravity");
+}
+
 export function installationPaths(targetRoot: string): InstallationPaths {
   const root = normalizeRoot(targetRoot);
   const isMac = isMacAppBundle(root);
   const resources = isMac ? path.join(root, "Contents", "Resources") : path.join(root, "resources");
-  const executable = isMac ? path.join(root, "Contents", "MacOS", "Antigravity") : path.join(root, "Antigravity.exe");
+  const executable = resolveExecutable(root, isMac);
   const runtimeRoot = path.join(resources, RUNTIME_DIRECTORY_NAME);
   return {
     root,
@@ -61,6 +124,19 @@ function candidateRoots(): readonly string[] {
     ].filter((candidate): candidate is string => typeof candidate === "string");
   }
 
+  if (process.platform === "linux") {
+    const home = process.env.HOME;
+    return [
+      "/opt/Antigravity",
+      "/opt/antigravity",
+      "/usr/lib/antigravity",
+      "/usr/share/antigravity",
+      home && path.join(home, ".local", "share", "Antigravity"),
+      home && path.join(home, ".local", "share", "antigravity"),
+      home && path.join(home, ".local", "share", "programs", "Antigravity")
+    ].filter((candidate): candidate is string => typeof candidate === "string");
+  }
+
   const { LOCALAPPDATA, ProgramFiles } = process.env;
   const programFilesX86 = process.env["ProgramFiles(x86)"];
   return [
@@ -71,7 +147,24 @@ function candidateRoots(): readonly string[] {
 }
 
 export function findAntigravityInstallation(): string | undefined {
-  return candidateRoots().find((candidate) => fs.existsSync(installationPaths(candidate).executable));
+  const direct = candidateRoots().find((candidate) => fs.existsSync(installationPaths(candidate).executable));
+  if (direct) return direct;
+
+  if (process.platform === "linux") {
+    const symlinkCandidate = "/usr/bin/antigravity";
+    if (fs.existsSync(symlinkCandidate)) {
+      try {
+        const resolved = normalizeRoot(symlinkCandidate);
+        if (fs.existsSync(installationPaths(resolved).executable)) {
+          return resolved;
+        }
+      } catch {
+        // Fall through
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /**
