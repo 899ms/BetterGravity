@@ -24,9 +24,10 @@ if (existsSync(exeSrc)) {
 
 // Create standalone zip
 const standaloneZip = resolve(outDir, "BetterGravity-Installer-Windows-x64.zip");
-execSync(`tar -a -c -f "${standaloneZip}" -C "${winPublishDir}" BetterGravityInstaller.exe`, {
-  cwd: workspace
-});
+execSync(
+  `powershell -NoProfile -Command "Compress-Archive -Path '${winPublishDir}\\BetterGravityInstaller.exe' -DestinationPath '${standaloneZip}' -Force"`,
+  { cwd: workspace, stdio: "inherit" }
+);
 
 // 2. Build lightweight framework-dependent package (<1MB)
 execSync(
@@ -39,9 +40,10 @@ try {
 } catch {}
 
 const lightZip = resolve(outDir, "BetterGravity-Installer-Windows-Light.zip");
-execSync(`tar -a -c -f "${lightZip}" -C "${lightPublishDir}" .`, {
-  cwd: workspace
-});
+execSync(
+  `powershell -NoProfile -Command "Compress-Archive -Path '${lightPublishDir}\\*' -DestinationPath '${lightZip}' -Force"`,
+  { cwd: workspace, stdio: "inherit" }
+);
 
 // Clean up intermediate staging directories
 rmSync(winPublishDir, { recursive: true, force: true });
