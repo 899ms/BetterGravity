@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "description": "An open community modification platform for Google Antigravity.",
+  "homepage": "https://github.com/YashjitPal/BetterGravity",
   "license": "MIT",
   "packageManager": "pnpm@10.27.0",
   "engines": {

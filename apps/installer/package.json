@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist-electron/main.cjs",
   "description": "The BetterGravity installer.",
+  "homepage": "https://github.com/YashjitPal/BetterGravity",
   "author": "BetterGravity Contributors <contributors@bettergravity.org>",
   "scripts": {
     "dev": "vite",
