@@ -32,9 +32,11 @@
     "typescript": "^5.9.2",
     "vite": "^7.1.3"
   },
+  "desktopName": "bettergravity-installer.desktop",
   "build": {
     "appId": "com.bettergravity.installer",
     "productName": "BetterGravity Installer",
+    "executableName": "bettergravity-installer",
     "artifactName": "BetterGravity-Installer-${version}.${ext}",
     "asar": true,
     "asarUnpack": [
