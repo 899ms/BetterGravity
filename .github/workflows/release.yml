@@ -72,7 +72,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2 || true
-      - run: ${{ matrix.build }}
+      - name: Build installers
+        shell: bash
+        run: |
+          set -e
+          ${{ matrix.build }} 2>&1 | tee build.log || {
+            BUILD_STATUS=$?
+            echo "::error title=Build failure on ${{ matrix.name }}::$(tail -n 25 build.log | tr '\r\n' ' ')"
+            tail -n 50 build.log
+            exit $BUILD_STATUS
+          }
       - name: Attach installers to GitHub Release
         uses: softprops/action-gh-release@v2
         with:

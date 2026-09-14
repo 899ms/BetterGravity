@@ -81,7 +81,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2 || true
-      - run: ${{ matrix.build }}
+      - name: Build packages
+        shell: bash
+        run: |
+          set -e
+          ${{ matrix.build }} 2>&1 | tee build.log || {
+            BUILD_STATUS=$?
+            echo "::error title=Build failure on ${{ matrix.name }}::$(tail -n 25 build.log | tr '\r\n' ' ')"
+            tail -n 50 build.log
+            exit $BUILD_STATUS
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
