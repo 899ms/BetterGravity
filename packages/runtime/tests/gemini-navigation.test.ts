@@ -273,14 +273,14 @@ describe("Gemini App search wildcard sanitation", () => {
       const row = createSearchRow("Searched", wildcard, 132);
       sanitizeSearchWildcardRow(row);
       const querySpan = row.children[1];
-      expect(querySpan.getAttribute("data-gemini-wildcard")).toBe("true");
+      expect(querySpan?.getAttribute("data-gemini-wildcard")).toBe("true");
     }
   });
 
   it("also sanitizes rows during active 'Searching' state", () => {
     const row = createSearchRow("Searching", "*", 0);
     sanitizeSearchWildcardRow(row);
-    expect(row.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+    expect(row.children[1]?.getAttribute("data-gemini-wildcard")).toBe("true");
   });
 
   it("preserves non-wildcard or specific search queries", () => {
@@ -288,24 +288,27 @@ describe("Gemini App search wildcard sanitation", () => {
       const row = createSearchRow("Searched", validQuery, 12);
       sanitizeSearchWildcardRow(row);
       const querySpan = row.children[1];
-      expect(querySpan.hasAttribute("data-gemini-wildcard")).toBe(false);
+      expect(querySpan?.hasAttribute("data-gemini-wildcard")).toBe(false);
     }
   });
 
   it("does not modify rows with non-search labels", () => {
     const row = createSearchRow("Executed", "*", 1);
     sanitizeSearchWildcardRow(row);
-    expect(row.children[1].hasAttribute("data-gemini-wildcard")).toBe(false);
+    expect(row.children[1]?.hasAttribute("data-gemini-wildcard")).toBe(false);
   });
 
   it("clears data-gemini-wildcard if query changes to a non-wildcard string", () => {
     const row = createSearchRow("Searched", "*", 10);
     sanitizeSearchWildcardRow(row);
-    expect(row.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+    expect(row.children[1]?.getAttribute("data-gemini-wildcard")).toBe("true");
 
-    row.children[1].textContent = "main.ts";
+    const querySpan = row.children[1];
+    if (querySpan) {
+      querySpan.textContent = "main.ts";
+    }
     sanitizeSearchWildcardRow(row);
-    expect(row.children[1].hasAttribute("data-gemini-wildcard")).toBe(false);
+    expect(row.children[1]?.hasAttribute("data-gemini-wildcard")).toBe(false);
   });
 
   it("sanitizes multiple rows inside a container subtree via sanitizeSearchWildcards", () => {
@@ -318,9 +321,9 @@ describe("Gemini App search wildcard sanitation", () => {
     container.appendChild(row3);
 
     sanitizeSearchWildcards(container);
-    expect(row1.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
-    expect(row2.children[1].hasAttribute("data-gemini-wildcard")).toBe(false);
-    expect(row3.children[1].getAttribute("data-gemini-wildcard")).toBe("true");
+    expect(row1.children[1]?.getAttribute("data-gemini-wildcard")).toBe("true");
+    expect(row2.children[1]?.hasAttribute("data-gemini-wildcard")).toBe(false);
+    expect(row3.children[1]?.getAttribute("data-gemini-wildcard")).toBe("true");
   });
 });
 

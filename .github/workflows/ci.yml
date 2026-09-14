@@ -61,6 +61,10 @@ jobs:
             name: installer-macos
             build: pnpm build:installer:mac
             path: release*/*
+          - os: ubuntu-latest
+            name: installer-linux
+            build: pnpm build:installer:linux
+            path: release*/*
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
