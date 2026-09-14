@@ -100,3 +100,53 @@ jobs:
           path: ${{ matrix.path }}
           if-no-files-found: error
           retention-days: 7
+
+  package-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: native-installer-windows
+            build: pnpm build:installer:native:win
+            path: dist-native/*
+          - os: macos-latest
+            name: native-installer-macos
+            build: pnpm build:installer:native:mac
+            path: dist-native/*.zip
+          - os: ubuntu-latest
+            name: native-installer-linux
+            build: pnpm build:installer:native:linux
+            path: dist-native/*.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Setup .NET (Windows only)
+        if: runner.os == 'Windows'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - run: pnpm install --frozen-lockfile
+      - name: Build native installer
+        shell: bash
+        run: |
+          set -e
+          ${{ matrix.build }} 2>&1 | tee build.log || {
+            BUILD_STATUS=$?
+            echo "::error title=Native build failure on ${{ matrix.name }}::$(tail -n 25 build.log | tr '\r\n' ' ')"
+            tail -n 50 build.log
+            exit $BUILD_STATUS
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          retention-days: 7

@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to attach binaries to (e.g. v0.1.3 or v0.1.4)'
+        description: 'Release tag to attach binaries to (e.g. v2.0.0)'
         required: true
-        default: 'v0.1.3'
+        default: 'v2.0.0'
 
 permissions:
   contents: write
@@ -32,6 +32,59 @@ jobs:
           name: BetterGravity ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag }}
           draft: false
           prerelease: false
+
+  publish-native-installers:
+    needs: prepare-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: native-windows
+            build: pnpm build:installer:native:win
+            files: |
+              dist-native/*.exe
+              dist-native/*.zip
+          - os: macos-latest
+            name: native-macos
+            build: pnpm build:installer:native:mac
+            files: dist-native/*.zip
+          - os: ubuntu-latest
+            name: native-linux
+            build: pnpm build:installer:native:linux
+            files: dist-native/*.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.27.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Setup .NET (Windows only)
+        if: runner.os == 'Windows'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - run: pnpm install --frozen-lockfile
+      - name: Build native installer
+        shell: bash
+        run: |
+          set -e
+          ${{ matrix.build }} 2>&1 | tee build.log || {
+            BUILD_STATUS=$?
+            echo "::error title=Native build failure on ${{ matrix.name }}::$(tail -n 25 build.log | tr '\r\n' ' ')"
+            tail -n 50 build.log
+            exit $BUILD_STATUS
+          }
+      - name: Attach native installers to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag }}
+          files: ${{ matrix.files }}
+          fail_on_unmatched_files: true
 
   publish-installers:
     needs: prepare-release

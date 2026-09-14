@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if os(macOS)
+import AppKit
+#endif
 
 @MainActor
 class InstallerModel: ObservableObject {
@@ -90,5 +93,15 @@ class InstallerModel: ObservableObject {
 
         isBusy = false
         progress = nil
+    }
+
+    func openLog() {
+        #if os(macOS)
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let logUrl = home.appendingPathComponent("Library/Application Support/BetterGravity/runtime.log")
+        if FileManager.default.fileExists(atPath: logUrl.path) {
+            NSWorkspace.shared.open(logUrl)
+        }
+        #endif
     }
 }

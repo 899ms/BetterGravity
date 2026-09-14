@@ -34,6 +34,12 @@ public static class PatcherBridge
         var inRepo = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "packages", "patcher", "dist", "native", "patcher-cli.cjs"));
         if (File.Exists(inRepo)) return inRepo;
 
+        var tempPatcher = ExtractEmbeddedPatcher();
+        if (tempPatcher != null && File.Exists(System.IO.Path.Combine(tempPatcher, "patcher-cli.cjs")))
+        {
+            return System.IO.Path.Combine(tempPatcher, "patcher-cli.cjs");
+        }
+
         return inPatcher;
     }
 
@@ -46,7 +52,51 @@ public static class PatcherBridge
         var inRepo = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "apps", "installer", "dist-electron", "runtime"));
         if (Directory.Exists(inRepo)) return inRepo;
 
+        var tempRuntime = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "BetterGravity", "Patcher", "runtime");
+        if (Directory.Exists(tempRuntime)) return tempRuntime;
+
         return inPatcher;
+    }
+
+    private static string? ExtractEmbeddedPatcher()
+    {
+        try
+        {
+            var tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "BetterGravity", "Patcher");
+            var runtimeDir = System.IO.Path.Combine(tempDir, "runtime");
+            Directory.CreateDirectory(runtimeDir);
+
+            var assembly = typeof(PatcherBridge).Assembly;
+            foreach (var name in assembly.GetManifestResourceNames())
+            {
+                if (name.Contains("Patcher."))
+                {
+                    string targetFile;
+                    if (name.Contains(".runtime."))
+                    {
+                        var fileName = name.Substring(name.IndexOf(".runtime.") + 9);
+                        targetFile = System.IO.Path.Combine(runtimeDir, fileName);
+                    }
+                    else
+                    {
+                        var fileName = name.Substring(name.IndexOf(".Patcher.") + 9);
+                        targetFile = System.IO.Path.Combine(tempDir, fileName);
+                    }
+
+                    using var stream = assembly.GetManifestResourceStream(name);
+                    if (stream != null)
+                    {
+                        using var fileStream = File.Create(targetFile);
+                        stream.CopyTo(fileStream);
+                    }
+                }
+            }
+            return tempDir;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static ProcessStartInfo CreateNodeStartInfo(string args, string? targetInstallationPath = null)

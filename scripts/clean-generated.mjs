@@ -12,6 +12,7 @@ const targets = [
   "coverage",
   "output",
   "release",
+  "dist-native",
   "apps/installer/dist",
   "apps/installer/dist-electron",
   "packages/marketplace/dist",

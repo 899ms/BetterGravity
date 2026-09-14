@@ -36,6 +36,7 @@ bin/
 obj/
 publish/
 dist-light/
+dist-native/
 release/
 release-*/
 artifacts/
