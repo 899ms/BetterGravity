@@ -32,6 +32,22 @@ jobs:
           name: BetterGravity ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag }}
           draft: false
           prerelease: false
+      - name: Purge legacy bulky Electron assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag }}
+        run: |
+          for asset in \
+            "BetterGravity-Installer-2.0.0-amd64.deb" \
+            "BetterGravity-Installer-2.0.0-arm64.dmg" \
+            "BetterGravity-Installer-2.0.0-arm64.zip" \
+            "BetterGravity-Installer-2.0.0-x64.dmg" \
+            "BetterGravity-Installer-2.0.0-x64.tar.gz" \
+            "BetterGravity-Installer-2.0.0-x64.zip" \
+            "BetterGravity-Installer-2.0.0-x86_64.AppImage" \
+            "BetterGravity-Installer-2.0.0.exe"; do
+            gh release delete-asset "$TAG" "$asset" -y --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+          done
 
   publish-native-installers:
     needs: prepare-release
@@ -48,7 +64,9 @@ jobs:
           - os: macos-latest
             name: native-macos
             build: pnpm build:installer:native:mac
-            files: dist-native/*.zip
+            files: |
+              dist-native/*.dmg
+              dist-native/*.zip
           - os: ubuntu-latest
             name: native-linux
             build: pnpm build:installer:native:linux
@@ -80,62 +98,6 @@ jobs:
             exit $BUILD_STATUS
           }
       - name: Attach native installers to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag }}
-          files: ${{ matrix.files }}
-          fail_on_unmatched_files: true
-
-  publish-installers:
-    needs: prepare-release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            name: windows
-            build: pnpm build:installer:win
-            files: release*/*.exe
-          - os: macos-latest
-            name: macos
-            build: pnpm build:installer:mac
-            files: |
-              release*/*.dmg
-              release*/*.zip
-          - os: ubuntu-latest
-            name: linux
-            build: pnpm build:installer:linux
-            files: |
-              release*/*.AppImage
-              release*/*.deb
-              release*/*.tar.gz
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.27.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install Linux build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2 || true
-      - name: Build installers
-        shell: bash
-        run: |
-          set -e
-          ${{ matrix.build }} 2>&1 | tee build.log || {
-            BUILD_STATUS=$?
-            echo "::error title=Build failure on ${{ matrix.name }}::$(tail -n 25 build.log | tr '\r\n' ' ')"
-            tail -n 50 build.log
-            exit $BUILD_STATUS
-          }
-      - name: Attach installers to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag }}

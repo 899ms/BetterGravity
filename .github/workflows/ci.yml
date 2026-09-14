@@ -113,7 +113,9 @@ jobs:
           - os: macos-latest
             name: native-installer-macos
             build: pnpm build:installer:native:mac
-            path: dist-native/*.zip
+            path: |
+              dist-native/*.dmg
+              dist-native/*.zip
           - os: ubuntu-latest
             name: native-installer-linux
             build: pnpm build:installer:native:linux

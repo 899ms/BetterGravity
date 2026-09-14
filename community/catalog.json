@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-13T23:22:14.974Z",
+  "generatedAt": "2026-09-14T02:24:55.374Z",
   "entries": [
     {
       "id": "computer-use",
@@ -311,7 +311,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 947011,
+      "bytes": 947619,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -340,8 +340,8 @@
         },
         {
           "name": "styles/conversation.css",
-          "bytes": 74036,
-          "sha256": "d2b123005c58c42e2f630e82089adc09ba0e627a556d63ca9fd272e914cd96db"
+          "bytes": 74644,
+          "sha256": "447ceb10cabf6ba2561805e816a543cb3d7f330f143808df15d9b5017a8a83c8"
         },
         {
           "name": "styles/dialog.css",

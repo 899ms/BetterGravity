@@ -81,6 +81,13 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   border-radius: 40px !important;
   background: var(--gemini-bubble-bg) !important;
   overflow: visible !important;
+  cursor: text !important;
+}
+
+[data-testid="lifted-context-menu-trigger"] > .bg-card button,
+[data-testid="lifted-context-menu-trigger"] > .bg-card [role="button"],
+[data-testid="lifted-context-menu-trigger"] > .bg-card a {
+  cursor: pointer !important;
 }
 
 /* Willow clips a long message at four lines (96px) before offering to expand. */
@@ -1817,3 +1824,15 @@ div:has(> .flex.items-center.whitespace-nowrap.overflow-hidden.min-w-0):not(:has
 [data-gemini-wildcard="true"] {
   display: none !important;
 }
+
+/* Unified reading cursor across assistant response text & markdown */
+[data-testid="conversation-view"] .select-text {
+  cursor: text !important;
+}
+
+[data-testid="conversation-view"] .select-text a,
+[data-testid="conversation-view"] .select-text button,
+[data-testid="conversation-view"] .select-text [role="button"] {
+  cursor: pointer !important;
+}
+

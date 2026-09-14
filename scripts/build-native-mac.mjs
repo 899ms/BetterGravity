@@ -77,5 +77,14 @@ try {
   execSync(`zip -r -y "${zipDest}" "BetterGravityInstaller.app"`, { cwd: outDir });
 }
 
+// 5. Create native macOS DMG (<1MB)
+const dmgDest = resolve(outDir, "BetterGravity-Installer-macOS.dmg");
+try {
+  execSync(`hdiutil create -volname "BetterGravity" -srcfolder "${appDir}" -ov -format UDZO "${dmgDest}"`, {
+    cwd: workspace,
+    stdio: "inherit"
+  });
+} catch {}
+
 // Clean up intermediate .app bundle
 rmSync(appDir, { recursive: true, force: true });
