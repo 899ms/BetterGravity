@@ -6977,16 +6977,16 @@ const SLIDE_WINDOW_MS = 1500;
  * inside the string: building it early does not produce "a greeting without a
  * name", it produces a different greeting that then has to be replaced
  * (MediaHome.tsx:160-191, from a refresh that went `Let's chat` ->
- * `Let's chat, there` -> `Let's chat, Yashjit`).
+ * `Let's chat, there` -> `Let's chat, <name>`).
  *
  * A runtime too old for `plugin.account` is the other case Willow has, and takes
  * Willow's answer to it: signed out short-circuits the wait, because the nameless
  * greeting is the final text then rather than a placeholder for one.
  */
 const DEFAULT_ACCOUNT = {
-  fullName: "Yashjit Pal",
-  email: "yashjitp@gmail.com",
-  pictureUrl: "https://lh3.googleusercontent.com/a/ACg8ocKqEYIsGZrCJjp8w8AW541NMrnAGJtzPJ061R9IIUyv1ilpE1Mk=s96-c"
+  fullName: "",
+  email: "",
+  pictureUrl: ""
 };
 
 let userAccountProfile = { ...DEFAULT_ACCOUNT };
@@ -6999,18 +6999,30 @@ function updateAllUserCards(profile) {
     const imgEl = pill.querySelector(".gemini-user-avatar");
     const fallbackEl = pill.querySelector(".gemini-user-avatar-fallback");
 
-    if (nameEl && profile.fullName) nameEl.textContent = profile.fullName;
-    if (emailEl && profile.email) emailEl.textContent = profile.email;
-    if (imgEl && profile.pictureUrl) {
-      imgEl.src = profile.pictureUrl;
-      imgEl.style.display = "";
-      if (fallbackEl) fallbackEl.style.display = "none";
+    const displayName = profile.fullName || (profile.email ? profile.email.split("@")[0] : "Account");
+    if (nameEl) nameEl.textContent = displayName;
+    if (emailEl) {
+      emailEl.textContent = profile.email || "";
+      emailEl.style.display = profile.email ? "" : "none";
     }
-    if (fallbackEl && profile.fullName) {
-      fallbackEl.textContent = profile.fullName.charAt(0).toUpperCase();
+    if (imgEl) {
+      if (profile.pictureUrl) {
+        imgEl.src = profile.pictureUrl;
+        imgEl.style.display = "";
+        if (fallbackEl) fallbackEl.style.display = "none";
+      } else {
+        imgEl.style.display = "none";
+        if (fallbackEl) fallbackEl.style.display = "flex";
+      }
+    }
+    if (fallbackEl) {
+      const initial = (profile.fullName || profile.email || "A").charAt(0).toUpperCase();
+      fallbackEl.textContent = initial;
     }
     if (profile.fullName || profile.email) {
-      pill.title = `${profile.fullName || ""} (${profile.email || ""})`.trim();
+      pill.title = profile.email
+        ? (profile.fullName ? `${profile.fullName} (${profile.email})` : profile.email)
+        : profile.fullName || "Account";
     }
   }
 }
@@ -7665,12 +7677,13 @@ function ensureSidebarUserCard(footer) {
     pill.type = "button";
     pill.setAttribute("aria-label", "User profile and settings");
 
-    const avatarUrl = userAccountProfile.pictureUrl || DEFAULT_ACCOUNT.pictureUrl;
-    const name = userAccountProfile.fullName || DEFAULT_ACCOUNT.fullName;
-    const email = userAccountProfile.email || DEFAULT_ACCOUNT.email;
-    const initial = (name || "Y").charAt(0).toUpperCase();
+    const avatarUrl = userAccountProfile.pictureUrl || "";
+    const name = userAccountProfile.fullName || "";
+    const email = userAccountProfile.email || "";
+    const displayName = name || (email ? email.split("@")[0] : "Account");
+    const initial = (name || email || "A").charAt(0).toUpperCase();
 
-    pill.title = `${name} (${email})`;
+    pill.title = email ? (name ? `${name} (${email})` : email) : displayName;
     if (isSidebarCollapsed()) {
       pill.setAttribute("data-tooltip-position", "right");
     }
@@ -7680,12 +7693,21 @@ function ensureSidebarUserCard(footer) {
 
     const img = document.createElement("img");
     img.className = "gemini-user-avatar";
-    img.src = avatarUrl;
-    img.alt = "";
+    if (avatarUrl) {
+      img.src = avatarUrl;
+      img.alt = "";
+    } else {
+      img.style.display = "none";
+    }
 
     const fallback = document.createElement("div");
     fallback.className = "gemini-user-avatar-fallback";
     fallback.textContent = initial;
+    if (avatarUrl) {
+      fallback.style.display = "none";
+    } else {
+      fallback.style.display = "flex";
+    }
 
     img.addEventListener("error", () => {
       img.style.display = "none";
@@ -7700,11 +7722,14 @@ function ensureSidebarUserCard(footer) {
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "gemini-user-name";
-    nameSpan.textContent = name;
+    nameSpan.textContent = displayName;
 
     const emailSpan = document.createElement("span");
     emailSpan.className = "gemini-user-email";
     emailSpan.textContent = email;
+    if (!email) {
+      emailSpan.style.display = "none";
+    }
 
     textDiv.appendChild(nameSpan);
     textDiv.appendChild(emailSpan);
