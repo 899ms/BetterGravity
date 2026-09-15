@@ -219,8 +219,20 @@ export class OverlayWindow {
   }
 
   private applyInteractive(live: Live): void {
-    if (live.interactive || this.contextMenu?.live === live) live.window.setIgnoreMouseEvents(false);
-    else live.window.setIgnoreMouseEvents(true, { forward: true });
+    if (live.interactive || this.contextMenu?.live === live) {
+      live.window.setIgnoreMouseEvents(false);
+    } else if (process.platform === "win32") {
+      // On Windows, Electron's { forward: true } installs a low-level hook that
+      // fights with underlying applications for WM_SETCURSOR, causing the cursor
+      // to rapidly flicker between the default arrow and the text/pointer cursor
+      // on every mouse movement (Electron issue #48035).
+      // Calling setIgnoreMouseEvents(true) without forwarding completely avoids
+      // the hook on Windows, while startPointerTracking() feeds cursor positions
+      // via native screen.getCursorScreenPoint().
+      live.window.setIgnoreMouseEvents(true);
+    } else {
+      live.window.setIgnoreMouseEvents(true, { forward: true });
+    }
     this.applyFocusable(live);
   }
 

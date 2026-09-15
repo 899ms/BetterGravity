@@ -120,7 +120,11 @@ describe("desktop overlay native context menu", () => {
     expect(window.webContents.send).toHaveBeenLastCalledWith(CHANNEL.overlayMessage, {
       type: "bettergravity:overlay-context-menu-result", requestId: "menu-1", id: "close-pet"
     });
-    expect(window.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true, { forward: true });
+    if (process.platform === "win32") {
+      expect(window.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true);
+    } else {
+      expect(window.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true, { forward: true });
+    }
     const count = window.webContents.send.mock.calls.length;
     state.menu.popup.mock.calls[0]![0].callback();
     expect(window.webContents.send).toHaveBeenCalledTimes(count);
@@ -204,7 +208,11 @@ describe.each(["win32", "darwin", "linux"])("desktop overlay pointer focus on %s
     expect(state.owner.focus).not.toHaveBeenCalled();
 
     overlay.setInteractive(false);
-    expect(window.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true, { forward: true });
+    if (platform === "win32") {
+      expect(window.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true);
+    } else {
+      expect(window.setIgnoreMouseEvents).toHaveBeenLastCalledWith(true, { forward: true });
+    }
     expect(window.isFocusable()).toBe(false);
     expect(window.focus).not.toHaveBeenCalled();
   });
