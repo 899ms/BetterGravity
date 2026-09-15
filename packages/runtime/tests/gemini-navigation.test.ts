@@ -327,3 +327,11 @@ describe("Gemini App search wildcard sanitation", () => {
   });
 });
 
+describe("Gemini App native duplicate logo suppression", () => {
+  it("includes CSS rule suppressing native Antigravity SVG logo container", () => {
+    const sidebarCss = readFileSync("community/plugins/gemini-app/styles/sidebar.css", "utf8");
+    expect(sidebarCss).toMatch(/div:has\(\+ div > \[data-testid="sidebar-toggle"\]\):has\(svg\)/);
+    expect(sidebarCss).toMatch(/svg path\[d\^="M144\.248"\]/);
+  });
+});
+

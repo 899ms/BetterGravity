@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-14T02:24:55.374Z",
+  "generatedAt": "2026-09-15T11:05:12.714Z",
   "entries": [
     {
       "id": "computer-use",
@@ -311,7 +311,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 947619,
+      "bytes": 948077,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -395,8 +395,8 @@
         },
         {
           "name": "styles/sidebar.css",
-          "bytes": 130462,
-          "sha256": "46223aaea182939456ba1a0ee90f9ba0f6efa4f5d42531b7496d9bbca9a0ddd7"
+          "bytes": 130920,
+          "sha256": "942dffc999da084e4793af893a7b11464a30ac29f42f54da7747d2a661a207f1"
         },
         {
           "name": "styles/skills-tab.css",
@@ -429,12 +429,12 @@
       "author": "BetterGravity Community",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/in-built-browser",
-      "bytes": 804556,
+      "bytes": 803507,
       "files": [
         {
           "name": "index.js",
-          "bytes": 110233,
-          "sha256": "3390a5931751f123f8cae2d7432c786f4b22825d6381a42e31b9068ca50c492d"
+          "bytes": 109184,
+          "sha256": "86d777d8e4983e08c3cd4a09f16c9c563da4ce2565f5f582b1bd8f4574cf14a7"
         },
         {
           "name": "mcp-server.cjs",

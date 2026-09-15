@@ -529,30 +529,12 @@ const options = plugin.settings.define({
 });
 
 function currentContext() { return location.pathname.match(/\/c\/([^/]+)/)?.[1] || location.pathname || "default"; }
-function conversationIsVisible(conversation) {
-  const check = conversation.checkVisibility;
-  if (!check) return true;
-  const nativeCheck = () => check.call(conversation, { checkVisibilityCSS: true });
-  if (check !== Element.prototype.checkVisibility || conversation.getRootNode() !== document) return nativeCheck();
-  // checkVisibility also flushes layout. A normal, connected block/flex/grid
-  // ancestor chain already guarantees this chat has a box; style reads suffice
-  // and let its new messages finish mounting before layout is needed. Leave
-  // display locking, hidden/contents boxes, special HTML parents, shadow roots,
-  // and overridden visibility checks to the native implementation.
-  for (let node = conversation; node; node = node.parentElement) {
-    if (!/^(DIV|MAIN|SECTION|ASIDE|BODY|HTML)$/.test(node.tagName)) return nativeCheck();
-    const style = getComputedStyle(node);
-    if (!/^(block|flex|grid|flow-root)$/.test(style.display) || style.visibility !== "visible" ||
-      style.contentVisibility && style.contentVisibility !== "visible") return nativeCheck();
-  }
-  return true;
-}
 function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
   // These full-page views retain /c/:id while covering the conversation.
   if (!id || !conversation || document.body.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
-  if (!conversationIsVisible(conversation)) return null;
+  if (conversation.checkVisibility && !conversation.checkVisibility({ checkVisibilityCSS: true })) return null;
   return id;
 }
 function nativePaneOpen() {
@@ -792,10 +774,11 @@ function agentEffect(node, duration, onHidden) {
 }
 
 function mount(terminal) {
-  if (!terminal || activeConversationContext() !== context) return;
+  if (!terminal) return;
   const header = terminal.closest("[data-active-tab-id]");
   const paneBody = header?.nextElementSibling;
   if (!header || !paneBody || root?.isConnected && toolbar === header && body === paneBody) return;
+  if (activeConversationContext() !== context) return;
   const previousSession = agentSession, previousTaskContext = taskContext, previousTabs = [...agentTabs], previousPoints = [...agentPoints];
   if (root) unmount();
   toolbar = header; body = paneBody;

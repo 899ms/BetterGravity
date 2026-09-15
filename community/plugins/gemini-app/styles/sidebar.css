@@ -308,6 +308,15 @@ div.bg-border.flex-shrink-0.w-\[1px\] {
   transition: opacity 80ms ease !important;
 }
 
+/* Antigravity's host update introduced a native duplicate SVG chevron logo inside
+ * the top-left floating toolbar preceding the sidebar toggle. This overlaps
+ * with Willow's custom brand mark (.gemini-logo-btn). Suppress the native
+ * logo container to keep only the Willow brand mark visible. */
+div:has(+ div > [data-testid="sidebar-toggle"]):has(svg),
+.absolute.top-0.left-0 div.shrink-0:has(> svg path[d^="M144.248"]) {
+  display: none !important;
+}
+
 /* The toggle's stock icon is a traced Material path in an 18px svg; Willow asks
  * the font for the same shape. Hide whatever the button nests inside its span
  * rather than the svg alone — the svg sits under an `absolute inset-0` wrapper,
