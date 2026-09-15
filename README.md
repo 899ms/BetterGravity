@@ -78,7 +78,21 @@ Test web applications, inspect live DOM trees, and let your agent browse the web
 
 Windows, macOS & Linux, Antigravity 2.x.
 
-Download the installer from [releases](https://github.com/YashjitPal/BetterGravity/releases), run it, and press **Install**. Then open Antigravity and find **BetterGravity** in Settings.
+Download the installer from [releases](https://github.com/YashjitPal/BetterGravity/releases), run it, and press **Install**.
+
+### Enabling features & plugins
+
+Once installed, BetterGravity adds its own dedicated menu inside Antigravity:
+
+1. Open Antigravity and click **Settings** (gear icon in the bottom-left corner).
+2. In the settings sidebar, scroll down to the **BetterGravity** section.
+3. Click **Plugins** to toggle on your preferred capabilities:
+   - **Gemini App** — Willow UI workspace redesign with dedicated tabs (Chat, Work, Skills, Scheduled Tasks).
+   - **Pets** — Desktop companions & interactive manager.
+   - **In-App Browser** & **Computer Use** — Autonomous web browsing and UI automation.
+   - **Bring Your Own Gemini Key** — Bypass quotas with custom API keys and thinking token pass-through.
+   - **Discord Rich Presence** — Live agent status in Discord.
+4. Click **Themes** to switch styles or drag-and-drop custom `.css` stylesheets.
 
 > 🛡️ **Safety & Reversibility:**
 > - Backups are created automatically before any patch is applied.

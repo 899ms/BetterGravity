@@ -32,6 +32,20 @@ Windows, macOS & Linux, Antigravity 2.x.
 The installer closes Antigravity if it is running, backs up the original program
 bundle, and verifies the result before reporting success.
 
+## Enabling Features & Plugins
+
+Once installed, open Antigravity to activate the capabilities you want:
+
+1. Open Antigravity and click **Settings** (gear icon in the bottom-left corner).
+2. In the settings sidebar, scroll down to the **BetterGravity** section.
+3. Click **Plugins** to toggle on your features:
+   - **Gemini App** — Willow UI workspace redesign with dedicated tabs (Chat, Work, Skills, Scheduled Tasks).
+   - **Pets** — Desktop companions & interactive companion manager.
+   - **In-App Browser** & **Computer Use** — In-editor autonomous web browsing and UI automation.
+   - **Bring Your Own Gemini Key** — Custom Gemini API keys with thinking token streaming.
+   - **Discord Rich Presence** — Dynamic agent status in Discord.
+4. Click **Themes** to switch styles or drag-and-drop custom `.css` stylesheets.
+
 ## Uninstall
 
 Run the installer again and press **Uninstall**. Antigravity is restored exactly
