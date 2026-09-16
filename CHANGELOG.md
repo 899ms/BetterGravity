@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-09-16
+
+### Fixed
+
+- **Windows Installer Node Runner & Path Encoding (Issues #10, #11)**:
+  - Fixed Windows installer failing when Node.js was not globally installed by automatically resolving and executing `Antigravity.exe` as the bundled Node runner (`ELECTRON_RUN_AS_NODE=1`).
+  - Fixed standard I/O UTF-8 encoding in `ProcessStartInfo` to prevent mojibake corruption on non-ASCII usernames and paths (e.g. `Hernán`).
+  - Added multi-source installation detection supporting standard paths and Windows Registry discovery (`HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall`).
+  - Fixed monorepo runtime source resolution in `patcher-cli.cjs`.
+  - Added cross-platform Windows drive-letter path detection in `paths.ts`.
+- **In-Built Browser**:
+  - Automatically prune destroyed browser tabs and allow safe recovery when closing detached or crashed tabs.
+
 ## [2.0.0] - 2026-09-14
 
 ### Added

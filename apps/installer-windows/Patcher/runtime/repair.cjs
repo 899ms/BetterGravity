@@ -3682,7 +3682,7 @@ var fs = resolveFileSystem();
 var import_node_path3 = __toESM(require("node:path"), 1);
 
 // ../../packages/shared/src/index.ts
-var BETTERGRAVITY_VERSION = "2.0.0";
+var BETTERGRAVITY_VERSION = "2.0.1";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
   if (typeof version !== "string") return false;
@@ -3734,6 +3734,12 @@ function normalizeRoot(root) {
   if (base === "Contents") {
     return import_node_path.default.dirname(normalized);
   }
+  if (!fs.existsSync(import_node_path.default.join(normalized, "Antigravity.exe")) && !fs.existsSync(import_node_path.default.join(normalized, "antigravity.exe"))) {
+    const subFolder = import_node_path.default.join(normalized, "Antigravity");
+    if (fs.existsSync(import_node_path.default.join(subFolder, "Antigravity.exe")) || fs.existsSync(import_node_path.default.join(subFolder, "antigravity.exe"))) {
+      return subFolder;
+    }
+  }
   return normalized;
 }
 function isMacAppBundle(root) {
@@ -3743,9 +3749,13 @@ function resolveExecutable(root, isMac) {
   if (isMac) {
     return import_node_path.default.join(root, "Contents", "MacOS", "Antigravity");
   }
-  if (process.platform === "win32") {
+  const isWindows = process.platform === "win32" || /^[a-zA-Z]:[\\/]/.test(root);
+  if (isWindows) {
     if (fs.existsSync(import_node_path.default.join(root, "Antigravity.exe"))) {
       return import_node_path.default.join(root, "Antigravity.exe");
+    }
+    if (fs.existsSync(import_node_path.default.join(root, "antigravity.exe"))) {
+      return import_node_path.default.join(root, "antigravity.exe");
     }
     if (fs.existsSync(import_node_path.default.join(root, "antigravity"))) {
       return import_node_path.default.join(root, "antigravity");

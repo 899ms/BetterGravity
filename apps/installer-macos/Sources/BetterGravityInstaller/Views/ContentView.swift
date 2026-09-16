@@ -27,7 +27,7 @@ struct ContentView: View {
 
                 Spacer()
 
-                Text("v2.0.0")
+                Text("v2.0.1")
                     .font(.system(size: 11, weight: .regular, design: .monospaced))
                     .foregroundColor(Color(red: 0.557, green: 0.569, blue: 0.561))
             }

@@ -12,6 +12,9 @@ await build({
   entryPoints: [path.join(here, "src", "native", "cli.ts")],
   outfile: path.join(here, "dist", "native", "patcher-cli.cjs"),
   external: ["electron", "original-fs"],
+  logOverride: {
+    "empty-import-meta": "silent"
+  },
   logLevel: "warning"
 });
 

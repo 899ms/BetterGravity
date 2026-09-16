@@ -61,7 +61,7 @@ class BetterGravityInstallerApp(Gtk.Application):
         spacer.set_hexpand(True)
         header.append(spacer)
 
-        ver_lbl = Gtk.Label(label="v2.0.0")
+        ver_lbl = Gtk.Label(label="v2.0.1")
         ver_lbl.add_css_class("version-text")
         header.append(ver_lbl)
         root.append(header)
