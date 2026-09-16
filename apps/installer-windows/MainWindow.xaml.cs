@@ -212,7 +212,8 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
         {
-            _state = await PatcherBridge.InspectAsync(dialog.FolderName);
+            var targetPath = PatcherBridge.FindAntigravityPath(dialog.FolderName) ?? dialog.FolderName;
+            _state = await PatcherBridge.InspectAsync(targetPath);
             UpdateUI();
         }
     }

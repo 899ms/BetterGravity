@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { InstallOperation, OperationProgress } from "../types.js";
@@ -12,14 +13,44 @@ function getDirname(): string {
   return path.dirname(fileURLToPath(import.meta.url));
 }
 
+function isValidRuntimeDir(dir: string): boolean {
+  try {
+    return fs.existsSync(path.join(dir, "main.cjs"));
+  } catch {
+    return false;
+  }
+}
+
 function resolveRuntimeSource(arg?: string): string {
-  if (arg) return path.resolve(arg);
+  if (arg) {
+    const resolvedArg = path.resolve(arg);
+    if (isValidRuntimeDir(resolvedArg)) {
+      return resolvedArg;
+    }
+  }
+
   const here = getDirname();
-  // In dev / repo:
-  const candidateA = path.resolve(here, "../../../installer/dist-electron/runtime");
-  const candidateB = path.resolve(here, "../../../runtime/dist");
-  const candidateC = path.resolve(here, "runtime");
-  return candidateA;
+  const candidates = [
+    arg ? path.resolve(arg) : null,
+    path.resolve(here, "runtime"),
+    path.resolve(here, "../runtime"),
+    path.resolve(here, "../../../../apps/installer/dist-electron/runtime"),
+    path.resolve(here, "../../../apps/installer/dist-electron/runtime"),
+    path.resolve(here, "../../apps/installer/dist-electron/runtime"),
+    path.resolve(here, "../../../../apps/installer-windows/Patcher/runtime"),
+    path.resolve(here, "../../../apps/installer-windows/Patcher/runtime"),
+    path.resolve(here, "../../../../packages/runtime/dist"),
+    path.resolve(here, "../../../packages/runtime/dist"),
+    path.resolve(here, "../../runtime/dist")
+  ].filter((c): c is string => Boolean(c));
+
+  for (const candidate of candidates) {
+    if (isValidRuntimeDir(candidate)) {
+      return candidate;
+    }
+  }
+
+  return arg ? path.resolve(arg) : path.resolve(here, "runtime");
 }
 
 export async function runCli(args: string[]): Promise<number> {

@@ -1021,7 +1021,7 @@ var require_wrapped_fs = __commonJS({
   "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var fs2 = "electron" in process.versions ? require("original-fs") : require("fs");
+    var fs3 = "electron" in process.versions ? require("original-fs") : require("fs");
     var promisifiedMethods = [
       "lstat",
       "mkdtemp",
@@ -1032,15 +1032,15 @@ var require_wrapped_fs = __commonJS({
       "readlink"
     ];
     var promisified = {};
-    for (const method of Object.keys(fs2)) {
+    for (const method of Object.keys(fs3)) {
       if (promisifiedMethods.includes(method)) {
-        promisified[method] = fs2.promises[method];
+        promisified[method] = fs3.promises[method];
       } else {
-        promisified[method] = fs2[method];
+        promisified[method] = fs3[method];
       }
     }
-    promisified.mkdirp = (dir) => fs2.promises.mkdir(dir, { recursive: true });
-    promisified.mkdirpSync = (dir) => fs2.mkdirSync(dir, { recursive: true });
+    promisified.mkdirp = (dir) => fs3.promises.mkdir(dir, { recursive: true });
+    promisified.mkdirpSync = (dir) => fs3.mkdirSync(dir, { recursive: true });
     exports2.default = promisified;
   }
 });
@@ -1739,7 +1739,7 @@ var require_old = __commonJS({
   "node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js"(exports2) {
     var pathModule = require("path");
     var isWindows = process.platform === "win32";
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var DEBUG = process.env.NODE_DEBUG && /fs/.test(process.env.NODE_DEBUG);
     function rethrow() {
       var callback;
@@ -1804,7 +1804,7 @@ var require_old = __commonJS({
         base = m[0];
         previous = "";
         if (isWindows && !knownHard[base]) {
-          fs2.lstatSync(base);
+          fs3.lstatSync(base);
           knownHard[base] = true;
         }
       }
@@ -1822,7 +1822,7 @@ var require_old = __commonJS({
         if (cache && Object.prototype.hasOwnProperty.call(cache, base)) {
           resolvedLink = cache[base];
         } else {
-          var stat = fs2.lstatSync(base);
+          var stat = fs3.lstatSync(base);
           if (!stat.isSymbolicLink()) {
             knownHard[base] = true;
             if (cache) cache[base] = base;
@@ -1836,8 +1836,8 @@ var require_old = __commonJS({
             }
           }
           if (linkTarget === null) {
-            fs2.statSync(base);
-            linkTarget = fs2.readlinkSync(base);
+            fs3.statSync(base);
+            linkTarget = fs3.readlinkSync(base);
           }
           resolvedLink = pathModule.resolve(previous, linkTarget);
           if (cache) cache[base] = resolvedLink;
@@ -1871,7 +1871,7 @@ var require_old = __commonJS({
         base = m[0];
         previous = "";
         if (isWindows && !knownHard[base]) {
-          fs2.lstat(base, function(err) {
+          fs3.lstat(base, function(err) {
             if (err) return cb(err);
             knownHard[base] = true;
             LOOP();
@@ -1897,7 +1897,7 @@ var require_old = __commonJS({
         if (cache && Object.prototype.hasOwnProperty.call(cache, base)) {
           return gotResolvedLink(cache[base]);
         }
-        return fs2.lstat(base, gotStat);
+        return fs3.lstat(base, gotStat);
       }
       function gotStat(err, stat) {
         if (err) return cb(err);
@@ -1912,9 +1912,9 @@ var require_old = __commonJS({
             return gotTarget(null, seenLinks[id], base);
           }
         }
-        fs2.stat(base, function(err2) {
+        fs3.stat(base, function(err2) {
           if (err2) return cb(err2);
-          fs2.readlink(base, function(err3, target) {
+          fs3.readlink(base, function(err3, target) {
             if (!isWindows) seenLinks[id] = target;
             gotTarget(err3, target);
           });
@@ -1943,9 +1943,9 @@ var require_fs = __commonJS({
     realpath.realpathSync = realpathSync;
     realpath.monkeypatch = monkeypatch;
     realpath.unmonkeypatch = unmonkeypatch;
-    var fs2 = require("fs");
-    var origRealpath = fs2.realpath;
-    var origRealpathSync = fs2.realpathSync;
+    var fs3 = require("fs");
+    var origRealpath = fs3.realpath;
+    var origRealpathSync = fs3.realpathSync;
     var version = process.version;
     var ok = /^v[0-5]\./.test(version);
     var old = require_old();
@@ -1983,12 +1983,12 @@ var require_fs = __commonJS({
       }
     }
     function monkeypatch() {
-      fs2.realpath = realpath;
-      fs2.realpathSync = realpathSync;
+      fs3.realpath = realpath;
+      fs3.realpathSync = realpathSync;
     }
     function unmonkeypatch() {
-      fs2.realpath = origRealpath;
-      fs2.realpathSync = origRealpathSync;
+      fs3.realpath = origRealpath;
+      fs3.realpathSync = origRealpathSync;
     }
   }
 });
@@ -2072,7 +2072,7 @@ var require_common = __commonJS({
     function ownProp(obj, field) {
       return Object.prototype.hasOwnProperty.call(obj, field);
     }
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var path5 = require("path");
     var minimatch = require_minimatch();
     var isAbsolute = require_path_is_absolute();
@@ -2127,7 +2127,7 @@ var require_common = __commonJS({
       self.stat = !!options.stat;
       self.noprocess = !!options.noprocess;
       self.absolute = !!options.absolute;
-      self.fs = options.fs || fs2;
+      self.fs = options.fs || fs3;
       self.maxLength = options.maxLength || Infinity;
       self.cache = options.cache || /* @__PURE__ */ Object.create(null);
       self.statCache = options.statCache || /* @__PURE__ */ Object.create(null);
@@ -3677,6 +3677,7 @@ __export(cli_exports, {
   runCli: () => runCli
 });
 module.exports = __toCommonJS(cli_exports);
+var import_node_fs2 = __toESM(require("node:fs"), 1);
 var import_node_path4 = __toESM(require("node:path"), 1);
 var import_node_url = require("node:url");
 
@@ -3684,7 +3685,7 @@ var import_node_url = require("node:url");
 var import_node_path3 = __toESM(require("node:path"), 1);
 
 // packages/shared/src/index.ts
-var BETTERGRAVITY_VERSION = "0.1.5";
+var BETTERGRAVITY_VERSION = "2.0.0";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
   if (typeof version !== "string") return false;
@@ -3748,6 +3749,12 @@ function normalizeRoot(root) {
   if (base === "Contents") {
     return import_node_path.default.dirname(normalized);
   }
+  if (!fs.existsSync(import_node_path.default.join(normalized, "Antigravity.exe")) && !fs.existsSync(import_node_path.default.join(normalized, "antigravity.exe"))) {
+    const subFolder = import_node_path.default.join(normalized, "Antigravity");
+    if (fs.existsSync(import_node_path.default.join(subFolder, "Antigravity.exe")) || fs.existsSync(import_node_path.default.join(subFolder, "antigravity.exe"))) {
+      return subFolder;
+    }
+  }
   return normalized;
 }
 function isMacAppBundle(root) {
@@ -3760,6 +3767,9 @@ function resolveExecutable(root, isMac) {
   if (process.platform === "win32") {
     if (fs.existsSync(import_node_path.default.join(root, "Antigravity.exe"))) {
       return import_node_path.default.join(root, "Antigravity.exe");
+    }
+    if (fs.existsSync(import_node_path.default.join(root, "antigravity.exe"))) {
+      return import_node_path.default.join(root, "antigravity.exe");
     }
     if (fs.existsSync(import_node_path.default.join(root, "antigravity"))) {
       return import_node_path.default.join(root, "antigravity");
@@ -3821,12 +3831,16 @@ function candidateRoots() {
       home && import_node_path.default.join(home, ".local", "share", "programs", "Antigravity")
     ].filter((candidate) => typeof candidate === "string");
   }
-  const { LOCALAPPDATA, ProgramFiles } = process.env;
+  const { LOCALAPPDATA, ProgramFiles, APPDATA, USERPROFILE } = process.env;
   const programFilesX86 = process.env["ProgramFiles(x86)"];
   return [
     LOCALAPPDATA && import_node_path.default.join(LOCALAPPDATA, "Programs", "Antigravity"),
+    LOCALAPPDATA && import_node_path.default.join(LOCALAPPDATA, "Antigravity"),
     ProgramFiles && import_node_path.default.join(ProgramFiles, "Antigravity"),
-    programFilesX86 && import_node_path.default.join(programFilesX86, "Antigravity")
+    programFilesX86 && import_node_path.default.join(programFilesX86, "Antigravity"),
+    APPDATA && import_node_path.default.join(APPDATA, "Programs", "Antigravity"),
+    USERPROFILE && import_node_path.default.join(USERPROFILE, "AppData", "Local", "Programs", "Antigravity"),
+    USERPROFILE && import_node_path.default.join(USERPROFILE, "AppData", "Local", "Antigravity")
   ].filter((candidate) => typeof candidate === "string");
 }
 function findAntigravityInstallation() {
@@ -4183,13 +4197,40 @@ function getDirname() {
   if (typeof __dirname !== "undefined") return __dirname;
   return import_node_path4.default.dirname((0, import_node_url.fileURLToPath)(import_meta.url));
 }
+function isValidRuntimeDir(dir) {
+  try {
+    return import_node_fs2.default.existsSync(import_node_path4.default.join(dir, "main.cjs"));
+  } catch {
+    return false;
+  }
+}
 function resolveRuntimeSource(arg) {
-  if (arg) return import_node_path4.default.resolve(arg);
+  if (arg) {
+    const resolvedArg = import_node_path4.default.resolve(arg);
+    if (isValidRuntimeDir(resolvedArg)) {
+      return resolvedArg;
+    }
+  }
   const here = getDirname();
-  const candidateA = import_node_path4.default.resolve(here, "../../../installer/dist-electron/runtime");
-  const candidateB = import_node_path4.default.resolve(here, "../../../runtime/dist");
-  const candidateC = import_node_path4.default.resolve(here, "runtime");
-  return candidateA;
+  const candidates = [
+    arg ? import_node_path4.default.resolve(arg) : null,
+    import_node_path4.default.resolve(here, "runtime"),
+    import_node_path4.default.resolve(here, "../runtime"),
+    import_node_path4.default.resolve(here, "../../../../apps/installer/dist-electron/runtime"),
+    import_node_path4.default.resolve(here, "../../../apps/installer/dist-electron/runtime"),
+    import_node_path4.default.resolve(here, "../../apps/installer/dist-electron/runtime"),
+    import_node_path4.default.resolve(here, "../../../../apps/installer-windows/Patcher/runtime"),
+    import_node_path4.default.resolve(here, "../../../apps/installer-windows/Patcher/runtime"),
+    import_node_path4.default.resolve(here, "../../../../packages/runtime/dist"),
+    import_node_path4.default.resolve(here, "../../../packages/runtime/dist"),
+    import_node_path4.default.resolve(here, "../../runtime/dist")
+  ].filter((c) => Boolean(c));
+  for (const candidate of candidates) {
+    if (isValidRuntimeDir(candidate)) {
+      return candidate;
+    }
+  }
+  return arg ? import_node_path4.default.resolve(arg) : import_node_path4.default.resolve(here, "runtime");
 }
 async function runCli(args) {
   const command = args[0];

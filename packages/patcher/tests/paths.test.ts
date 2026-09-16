@@ -63,6 +63,14 @@ describe("installationPaths", () => {
     expect(fromResources.root).toBe(root);
     expect(fromResources.resources).toBe(path.join(root, "resources"));
   });
+
+  it("normalizes user selections pointing directly to Antigravity.exe on Windows including non-ASCII paths", () => {
+    const root = path.join("C:", "Users", "Hernán", "AppData", "Local", "Programs", "Antigravity");
+    const fromExe = installationPaths(path.join(root, "Antigravity.exe"));
+    expect(fromExe.root).toBe(root);
+    expect(fromExe.resources).toBe(path.join(root, "resources"));
+    expect(fromExe.executable).toBe(path.join(root, "Antigravity.exe"));
+  });
 });
 
 // Regression: the patcher reads through original-fs, which cannot see inside an

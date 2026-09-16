@@ -1,8 +1,10 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace BetterGravityInstaller;
 
@@ -24,6 +26,147 @@ public record OperationProgress(
 
 public static class PatcherBridge
 {
+    private static string? _extractedTempDir;
+
+    private static readonly string[] CandidateDirectories = new[]
+    {
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Antigravity"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Antigravity"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Antigravity"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Antigravity"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Programs", "Antigravity"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "Programs", "Antigravity"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "Antigravity"),
+    };
+
+    public static string? TryFindFromRegistry()
+    {
+        string[] rootKeys = {
+            @"Software\Microsoft\Windows\CurrentVersion\Uninstall",
+            @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+        };
+
+        RegistryKey[] hives = { Registry.CurrentUser, Registry.LocalMachine };
+
+        foreach (var hive in hives)
+        {
+            foreach (var subKeyPath in rootKeys)
+            {
+                try
+                {
+                    using var key = hive.OpenSubKey(subKeyPath);
+                    if (key == null) continue;
+
+                    foreach (var subName in key.GetSubKeyNames())
+                    {
+                        try
+                        {
+                            using var appKey = key.OpenSubKey(subName);
+                            if (appKey == null) continue;
+
+                            var displayName = appKey.GetValue("DisplayName") as string;
+                            if (displayName != null && displayName.Contains("Antigravity", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var installLocation = appKey.GetValue("InstallLocation") as string;
+                                if (!string.IsNullOrEmpty(installLocation))
+                                {
+                                    var trimmed = installLocation.Trim().TrimEnd('\\', '/');
+                                    if (File.Exists(Path.Combine(trimmed, "Antigravity.exe")) || File.Exists(Path.Combine(trimmed, "antigravity.exe")))
+                                    {
+                                        return trimmed;
+                                    }
+                                }
+
+                                var displayIcon = appKey.GetValue("DisplayIcon") as string;
+                                if (!string.IsNullOrEmpty(displayIcon))
+                                {
+                                    var iconPath = displayIcon.Trim().Trim('\"');
+                                    var dir = Path.GetDirectoryName(iconPath);
+                                    if (!string.IsNullOrEmpty(dir) && (File.Exists(Path.Combine(dir, "Antigravity.exe")) || File.Exists(Path.Combine(dir, "antigravity.exe"))))
+                                    {
+                                        return dir;
+                                    }
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Skip individual unreadable subkeys
+                        }
+                    }
+                }
+                catch
+                {
+                    // Skip inaccessible hives or roots
+                }
+            }
+        }
+        return null;
+    }
+
+    public static string? FindAntigravityPath(string? hintPath = null)
+    {
+        if (!string.IsNullOrEmpty(hintPath))
+        {
+            if (File.Exists(Path.Combine(hintPath, "Antigravity.exe")) || File.Exists(Path.Combine(hintPath, "antigravity.exe")))
+            {
+                return hintPath;
+            }
+            var sub = Path.Combine(hintPath, "Antigravity");
+            if (File.Exists(Path.Combine(sub, "Antigravity.exe")) || File.Exists(Path.Combine(sub, "antigravity.exe")))
+            {
+                return sub;
+            }
+        }
+
+        foreach (var dir in CandidateDirectories)
+        {
+            if (Directory.Exists(dir) && (File.Exists(Path.Combine(dir, "Antigravity.exe")) || File.Exists(Path.Combine(dir, "antigravity.exe"))))
+            {
+                return dir;
+            }
+        }
+
+        return TryFindFromRegistry();
+    }
+
+    private static (string FileName, bool RunAsNode) ResolveRunner(string? targetInstallationPath)
+    {
+        // 1. If target installation path contains Antigravity executable, use it
+        if (!string.IsNullOrEmpty(targetInstallationPath))
+        {
+            var hostExe = Path.Combine(targetInstallationPath, "Antigravity.exe");
+            if (File.Exists(hostExe))
+            {
+                return (hostExe, true);
+            }
+            var hostExeLower = Path.Combine(targetInstallationPath, "antigravity.exe");
+            if (File.Exists(hostExeLower))
+            {
+                return (hostExeLower, true);
+            }
+        }
+
+        // 2. Try to locate Antigravity from standard candidate locations or Registry
+        var foundDir = FindAntigravityPath(targetInstallationPath);
+        if (!string.IsNullOrEmpty(foundDir))
+        {
+            var hostExe = Path.Combine(foundDir, "Antigravity.exe");
+            if (File.Exists(hostExe))
+            {
+                return (hostExe, true);
+            }
+            var hostExeLower = Path.Combine(foundDir, "antigravity.exe");
+            if (File.Exists(hostExeLower))
+            {
+                return (hostExeLower, true);
+            }
+        }
+
+        // 3. Fallback to system node
+        return ("node", false);
+    }
+
     private static string GetPatcherScriptPath()
     {
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -33,6 +176,9 @@ public static class PatcherBridge
         // Fallback for dev / repo structure
         var inRepo = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "packages", "patcher", "dist", "native", "patcher-cli.cjs"));
         if (File.Exists(inRepo)) return inRepo;
+
+        var inRepoPatcher = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "apps", "installer-windows", "Patcher", "patcher-cli.cjs"));
+        if (File.Exists(inRepoPatcher)) return inRepoPatcher;
 
         var tempPatcher = ExtractEmbeddedPatcher();
         if (tempPatcher != null && File.Exists(System.IO.Path.Combine(tempPatcher, "patcher-cli.cjs")))
@@ -47,19 +193,37 @@ public static class PatcherBridge
     {
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var inPatcher = System.IO.Path.Combine(baseDir, "Patcher", "runtime");
-        if (Directory.Exists(inPatcher)) return inPatcher;
+        if (Directory.Exists(inPatcher) && File.Exists(System.IO.Path.Combine(inPatcher, "main.cjs"))) return inPatcher;
 
         var inRepo = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "apps", "installer", "dist-electron", "runtime"));
-        if (Directory.Exists(inRepo)) return inRepo;
+        if (Directory.Exists(inRepo) && File.Exists(System.IO.Path.Combine(inRepo, "main.cjs"))) return inRepo;
+
+        var inRepoDist = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "packages", "runtime", "dist"));
+        if (Directory.Exists(inRepoDist) && File.Exists(System.IO.Path.Combine(inRepoDist, "main.cjs"))) return inRepoDist;
 
         var tempRuntime = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "BetterGravity", "Patcher", "runtime");
-        if (Directory.Exists(tempRuntime)) return tempRuntime;
+        if (Directory.Exists(tempRuntime) && File.Exists(System.IO.Path.Combine(tempRuntime, "main.cjs"))) return tempRuntime;
+
+        var tempPatcher = ExtractEmbeddedPatcher();
+        if (tempPatcher != null)
+        {
+            var extractedRuntime = System.IO.Path.Combine(tempPatcher, "runtime");
+            if (Directory.Exists(extractedRuntime) && File.Exists(System.IO.Path.Combine(extractedRuntime, "main.cjs")))
+            {
+                return extractedRuntime;
+            }
+        }
 
         return inPatcher;
     }
 
     private static string? ExtractEmbeddedPatcher()
     {
+        if (_extractedTempDir != null && Directory.Exists(_extractedTempDir))
+        {
+            return _extractedTempDir;
+        }
+
         try
         {
             var tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "BetterGravity", "Patcher");
@@ -91,6 +255,7 @@ public static class PatcherBridge
                     }
                 }
             }
+            _extractedTempDir = tempDir;
             return tempDir;
         }
         catch
@@ -101,25 +266,23 @@ public static class PatcherBridge
 
     private static ProcessStartInfo CreateNodeStartInfo(string args, string? targetInstallationPath = null)
     {
-        // Try system node first, fallback to Antigravity.exe with ELECTRON_RUN_AS_NODE=1
-        string exe = "node";
+        var (exe, runAsNode) = ResolveRunner(targetInstallationPath);
+
         var psi = new ProcessStartInfo
         {
             FileName = exe,
             Arguments = args,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        if (!string.IsNullOrEmpty(targetInstallationPath))
+        if (runAsNode)
         {
-            var hostExe = System.IO.Path.Combine(targetInstallationPath, "Antigravity.exe");
-            if (File.Exists(hostExe))
-            {
-                psi.Environment["ELECTRON_RUN_AS_NODE"] = "1";
-            }
+            psi.Environment["ELECTRON_RUN_AS_NODE"] = "1";
         }
 
         return psi;
@@ -127,32 +290,51 @@ public static class PatcherBridge
 
     public static async Task<string?> DetectAsync()
     {
+        // 1. Instant native detection: check known locations and registry
+        var nativeFound = FindAntigravityPath();
+        if (!string.IsNullOrEmpty(nativeFound))
+        {
+            return nativeFound;
+        }
+
+        // 2. Fallback: try executing patcher-cli detect
         try
         {
             var script = GetPatcherScriptPath();
-            if (!File.Exists(script)) return null;
-
-            var psi = CreateNodeStartInfo($"\"{script}\" detect");
-            using var proc = Process.Start(psi);
-            if (proc == null) return null;
-
-            var output = await proc.StandardOutput.ReadToEndAsync();
-            await proc.WaitForExitAsync();
-
-            using var doc = JsonDocument.Parse(output.Trim());
-            if (doc.RootElement.TryGetProperty("path", out var pathProp) && pathProp.ValueKind == JsonValueKind.String)
+            if (File.Exists(script))
             {
-                return pathProp.GetString();
+                var psi = CreateNodeStartInfo($"\"{script}\" detect");
+                using var proc = Process.Start(psi);
+                if (proc != null)
+                {
+                    var output = await proc.StandardOutput.ReadToEndAsync();
+                    await proc.WaitForExitAsync();
+
+                    if (!string.IsNullOrWhiteSpace(output))
+                    {
+                        using var doc = JsonDocument.Parse(output.Trim());
+                        if (doc.RootElement.TryGetProperty("path", out var pathProp) && pathProp.ValueKind == JsonValueKind.String)
+                        {
+                            var detected = pathProp.GetString();
+                            if (!string.IsNullOrEmpty(detected) && Directory.Exists(detected))
+                            {
+                                return detected;
+                            }
+                        }
+                    }
+                }
             }
         }
         catch
         {
-            // Fallback: standard Windows location
-            var standard = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs", "Antigravity");
-            if (Directory.Exists(standard)) return standard;
+            // Ignore script failure and continue to final fallback
         }
+
+        // 3. Last fallback: standard Windows location
+        var standard = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs", "Antigravity");
+        if (Directory.Exists(standard)) return standard;
 
         return null;
     }
@@ -164,31 +346,38 @@ public static class PatcherBridge
             var script = GetPatcherScriptPath();
             var psi = CreateNodeStartInfo($"\"{script}\" inspect \"{installationPath}\"", installationPath);
             using var proc = Process.Start(psi);
-            if (proc == null) return new InstallationState("not-found", "unknown", installationPath, null, null, false, "Failed to start inspector.");
+            if (proc == null) return new InstallationState("not-found", "unknown", installationPath, null, null, false, "Failed to start inspector process.");
 
-            var output = await proc.StandardOutput.ReadToEndAsync();
+            var outputTask = proc.StandardOutput.ReadToEndAsync();
+            var errorTask = proc.StandardError.ReadToEndAsync();
             await proc.WaitForExitAsync();
 
-            using var doc = JsonDocument.Parse(output.Trim());
-            if (doc.RootElement.TryGetProperty("installation", out var inst))
-            {
-                string kind = inst.GetProperty("kind").GetString() ?? "not-found";
-                string? patchState = inst.TryGetProperty("patchState", out var ps) ? ps.GetString() : null;
-                string? path = inst.TryGetProperty("path", out var p) ? p.GetString() : installationPath;
-                string? hostVer = inst.TryGetProperty("antigravityVersion", out var hv) ? hv.GetString() : null;
-                string? bgVer = inst.TryGetProperty("betterGravityVersion", out var bv) ? bv.GetString() : null;
-                bool nativeAvailable = inst.TryGetProperty("nativePatchAvailable", out var na) && na.GetBoolean();
-                string? error = inst.TryGetProperty("error", out var err) ? err.GetString() : null;
+            var output = await outputTask;
+            var error = await errorTask;
 
-                return new InstallationState(kind, patchState, path, hostVer, bgVer, nativeAvailable, error);
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                using var doc = JsonDocument.Parse(output.Trim());
+                if (doc.RootElement.TryGetProperty("installation", out var inst))
+                {
+                    string kind = inst.GetProperty("kind").GetString() ?? "not-found";
+                    string? patchState = inst.TryGetProperty("patchState", out var ps) ? ps.GetString() : null;
+                    string? path = inst.TryGetProperty("path", out var p) ? p.GetString() : installationPath;
+                    string? hostVer = inst.TryGetProperty("antigravityVersion", out var hv) ? hv.GetString() : null;
+                    string? bgVer = inst.TryGetProperty("betterGravityVersion", out var bv) ? bv.GetString() : null;
+                    bool nativeAvailable = inst.TryGetProperty("nativePatchAvailable", out var na) && na.GetBoolean();
+                    string? inspectError = inst.TryGetProperty("error", out var err) ? err.GetString() : null;
+
+                    return new InstallationState(kind, patchState, path, hostVer, bgVer, nativeAvailable, inspectError ?? (proc.ExitCode != 0 ? error : null));
+                }
             }
+
+            return new InstallationState("not-found", "unknown", installationPath, null, null, false, !string.IsNullOrWhiteSpace(error) ? error.Trim() : "Inspection produced no output.");
         }
         catch (Exception ex)
         {
             return new InstallationState("not-found", "unknown", installationPath, null, null, false, ex.Message);
         }
-
-        return new InstallationState("not-found", "unknown", installationPath, null, null, false, "Unknown inspection failure.");
     }
 
     public static async Task<(bool Success, string Message, InstallationState? FinalState)> RunOperationAsync(
@@ -208,6 +397,13 @@ public static class PatcherBridge
             string? finalMessage = null;
             bool isSuccess = false;
             InstallationState? finalState = null;
+
+            var errBuilder = new StringBuilder();
+            proc.ErrorDataReceived += (s, e) =>
+            {
+                if (e.Data != null) errBuilder.AppendLine(e.Data);
+            };
+            proc.BeginErrorReadLine();
 
             string? line;
             while ((line = await proc.StandardOutput.ReadLineAsync()) != null)
@@ -242,6 +438,12 @@ public static class PatcherBridge
             }
 
             await proc.WaitForExitAsync();
+
+            var errText = errBuilder.ToString().Trim();
+            if (!isSuccess && string.IsNullOrEmpty(finalMessage) && !string.IsNullOrEmpty(errText))
+            {
+                finalMessage = errText;
+            }
 
             // Refresh state after operation
             finalState = await InspectAsync(installationPath);

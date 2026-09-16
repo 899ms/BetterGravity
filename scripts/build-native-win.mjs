@@ -9,6 +9,23 @@ const lightPublishDir = resolve(outDir, "windows-light");
 
 mkdirSync(outDir, { recursive: true });
 
+// Ensure patcher CLI is freshly bundled
+execSync("node packages/patcher/build-cli.mjs", { cwd: workspace, stdio: "inherit" });
+
+const patcherCliSrc = resolve(workspace, "packages/patcher/dist/native/patcher-cli.cjs");
+const patcherCliDest = resolve(workspace, "apps/installer-windows/Patcher/patcher-cli.cjs");
+if (existsSync(patcherCliSrc)) {
+  cpSync(patcherCliSrc, patcherCliDest, { force: true });
+}
+
+// Ensure runtime bundles are synced to installer-windows Patcher directory
+const electronRuntimeSrc = resolve(workspace, "apps/installer/dist-electron/runtime");
+const windowsRuntimeDest = resolve(workspace, "apps/installer-windows/Patcher/runtime");
+if (existsSync(electronRuntimeSrc)) {
+  mkdirSync(windowsRuntimeDest, { recursive: true });
+  cpSync(electronRuntimeSrc, windowsRuntimeDest, { recursive: true, force: true });
+}
+
 // 1. Build self-contained single-file executable
 execSync(
   `dotnet publish apps/installer-windows/BetterGravityInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "${winPublishDir}"`,
