@@ -3764,7 +3764,8 @@ function resolveExecutable(root, isMac) {
   if (isMac) {
     return import_node_path.default.join(root, "Contents", "MacOS", "Antigravity");
   }
-  if (process.platform === "win32") {
+  const isWindows = process.platform === "win32" || /^[a-zA-Z]:[\\/]/.test(root);
+  if (isWindows) {
     if (fs.existsSync(import_node_path.default.join(root, "Antigravity.exe"))) {
       return import_node_path.default.join(root, "Antigravity.exe");
     }

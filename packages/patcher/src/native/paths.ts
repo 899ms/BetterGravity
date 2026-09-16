@@ -76,7 +76,9 @@ function resolveExecutable(root: string, isMac: boolean): string {
     return path.join(root, "Contents", "MacOS", "Antigravity");
   }
 
-  if (process.platform === "win32") {
+  const isWindows = process.platform === "win32" || /^[a-zA-Z]:[\\/]/.test(root);
+
+  if (isWindows) {
     if (fs.existsSync(path.join(root, "Antigravity.exe"))) {
       return path.join(root, "Antigravity.exe");
     }
