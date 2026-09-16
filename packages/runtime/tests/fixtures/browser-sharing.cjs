@@ -102,6 +102,12 @@ app.whenReady().then(async () => {
   const popup = [...beta.tabs.values()].find(tab => tab !== a && tab !== b);
   assert.equal(service.tabContext(popup), "beta");
   service.closeTab(beta, popup);
+  assert.doesNotThrow(() => service.closeTab(beta, popup));
+  const panelState = service.state(beta);
+  assert(!panelState.tabs.some(tab => tab.title === "Closed tab"));
+  await service.request(first.webContents, "select", { context: "beta", tabId: popup.id });
+  assert.equal(beta.activeTabId !== popup.id, true);
+  await service.request(first.webContents, "close-tab", { context: "beta", tabId: popup.id });
   result.popupOwnership = true;
   await service.execute("playwright_locator_click", { browser_id: beta.id, tab_id: a.id, selector: "#count" });
   await until(async () => (await a.evaluate("window.count")) === 1, "Click did not increment count");

@@ -495,6 +495,7 @@ export class InBuiltBrowserService {
     const tab: NativeBrowserTab = new NativeBrowserTab({ session: this.nativeSession!, injected: this.injected, ...(nativeWindow ? { nativeWindow } : {}),
       autoApprove: () => this.isEnabled && this.yoloEnabled,
       changed: () => this.tabChanged(tab),
+      destroyed: () => this.pruneTab(tab),
       popup: (_url, options) => this.openPopup(eventHost(), tab, options),
       shortcut: shortcut => { const current = currentHost(); if (current) current.owner.send(CHANNEL.browserState, { ...this.state(current), shortcut }); },
       selection: selection => { const current = currentHost(); if (current) { current.selection = { ...selection, tabId: tab.id }; this.changed(current); } },
@@ -543,22 +544,31 @@ export class InBuiltBrowserService {
     host.visible = true; setImmediate(() => this.changed(host)); return popup;
   }
 
-  closeTab(host: BrowserHost, tab: NativeBrowserTab): void {
-    if (!host.tabs.has(tab.id)) throw new Error("This tab is not available in the current conversation.");
-    const context = this.tabContexts.get(tab.id)!;
-    this.allTabs.delete(tab.id); this.contextTabs.get(context)?.delete(tab.id); this.tabContexts.delete(tab.id); this.visits.delete(tab.id); this.restoredUrls.delete(tab.id);
-    if (this.sharedActiveTabId === tab.id) this.sharedActiveTabId = [...this.allTabs.keys()].at(-1) ?? null;
-    if (this.contextActiveTabs.get(context) === tab.id) this.contextActiveTabs.delete(context);
+  pruneTab(tab: NativeBrowserTab): void {
+    if (!this.allTabs.has(tab.id)) return;
+    const context = this.tabContexts.get(tab.id);
+    this.allTabs.delete(tab.id);
+    if (context) this.contextTabs.get(context)?.delete(tab.id);
+    this.tabContexts.delete(tab.id);
+    this.visits.delete(tab.id);
+    this.restoredUrls.delete(tab.id);
+    if (this.sharedActiveTabId === tab.id) this.sharedActiveTabId = [...this.allTabs.values()].filter(t => !t.destroyed).map(t => t.id).at(-1) ?? null;
+    if (context && this.contextActiveTabs.get(context) === tab.id) this.contextActiveTabs.delete(context);
     for (const current of this.hosts.values()) {
       if (current.attachedTab === tab) this.detachView(current);
       if (current.selection?.tabId === tab.id) current.selection = null;
       if (current.agentCursor?.tabId === tab.id) current.agentCursor = null;
       current.agentTabIds.delete(tab.id);
       current.agentSessionTabIds.delete(tab.id);
-      if (current.activeTabId === tab.id) current.activeTabId = [...current.tabs.keys()].at(-1) ?? null;
+      if (current.activeTabId === tab.id) current.activeTabId = [...current.tabs.values()].filter(t => !t.destroyed).map(t => t.id).at(-1) ?? null;
     }
     tab.dispose();
     for (const current of this.hosts.values()) this.changed(current);
+  }
+
+  closeTab(host: BrowserHost, tab: NativeBrowserTab): void {
+    if (!host.tabs.has(tab.id) && !tab.destroyed) throw new Error("This tab is not available in the current conversation.");
+    this.pruneTab(tab);
   }
 
   async authorize(host: BrowserHost, url: string): Promise<void> {
@@ -582,8 +592,12 @@ export class InBuiltBrowserService {
   }
 
   state(host: BrowserHost): BrowserPanelState {
+    const validTabs = [...host.tabs.values()].filter(tab => !tab.destroyed);
+    if (host.activeTabId && (!host.tabs.has(host.activeTabId) || host.tabs.get(host.activeTabId)?.destroyed)) {
+      host.activeTabId = validTabs.at(-1)?.id ?? null;
+    }
     const active = host.activeTabId ? host.tabs.get(host.activeTabId) : undefined;
-    return { browserId: host.id, context: host.context, enabled: this.isEnabled, visible: host.visible, tabs: [...host.tabs.values()].map(tab => tab.state()),
+    return { browserId: host.id, context: host.context, enabled: this.isEnabled, visible: host.visible, tabs: validTabs.map(tab => tab.state()),
       activeTabId: host.activeTabId, activity: host.activity, agentActivity: host.agentActivity, paused: host.paused, developerMode: this.developerMode, viewport: host.viewport, supportsCompositing: true,
       revealSequence: host.revealSequence, supportsAgentCursor: true, agentCursor: host.agentCursor, sharedTabsAcrossConversations: this.sharedTabsAcrossConversations,
       permission: host.permission ? { id: host.permission.id, origin: host.permission.origin, description: host.permission.description } : null,
@@ -606,6 +620,10 @@ export class InBuiltBrowserService {
 
   private tabChanged(tab: NativeBrowserTab): void {
     if (!this.allTabs.has(tab.id) || this.restoringTabs) return;
+    if (tab.destroyed) {
+      this.pruneTab(tab);
+      return;
+    }
     if (tab.state().url !== "about:blank") this.restoredUrls.delete(tab.id);
     for (const host of this.hosts.values()) if (host.tabs.has(tab.id)) this.changed(host);
     // Downloads and background navigation still persist after a window closes.
@@ -616,6 +634,7 @@ export class InBuiltBrowserService {
     if (!this.isEnabled || this.restoringTabs) return;
     let modified = metadataChanged;
     for (const page of this.allTabs.values()) {
+      if (page.destroyed) continue;
       const tab = page.state();
       if (tab.url === "about:blank" || tab.loading || tab.error) continue;
       const visitId = page.visitId;
@@ -634,7 +653,7 @@ export class InBuiltBrowserService {
       const saved: SavedBrowserContext = { context, name: previous?.name ?? "In Built Browser", visible: previous?.visible ?? false,
         viewport: previous?.viewport ?? null, annotations: previous?.annotations ?? [],
         activeIndex: Math.max(0, [...tabs.keys()].indexOf(this.contextActiveTabs.get(context) ?? "")),
-        urls: [...tabs.values()].map(tab => this.restoredUrls.get(tab.id) ?? tab.state().url) };
+        urls: [...tabs.values()].filter(tab => !tab.destroyed).map(tab => this.restoredUrls.get(tab.id) ?? tab.state().url) };
       if (JSON.stringify(saved) !== JSON.stringify(previous)) {
         this.savedContexts.delete(context); this.savedContexts.set(context, saved); modified = true;
       }
@@ -777,7 +796,12 @@ export class InBuiltBrowserService {
     if (context !== this.currentContext(owner) && ["detach", "hide", "present-frame", "cursor-arrived", "input", "response-state"].includes(action)) return {};
     const host = this.attach(owner, context);
     const active = () => this.findTab(host, args.tabId);
-    if (["navigate", "back", "forward", "reload", "stop-loading", "focus", "zoom", "find", "annotate", "style-preview", "style-restore", "viewport"].includes(action) && host.tabs.size && this.isUserInputBlocked(active())) return this.state(host);
+    const safeActive = () => {
+      const tab = host.tabs.get(typeof args.tabId === "string" ? args.tabId : host.activeTabId ?? "");
+      return tab && !tab.destroyed ? tab : undefined;
+    };
+    const targetTab = safeActive();
+    if (targetTab && ["navigate", "back", "forward", "reload", "stop-loading", "focus", "zoom", "find", "annotate", "style-preview", "style-restore", "viewport"].includes(action) && this.isUserInputBlocked(targetTab)) return this.state(host);
     switch (action) {
       case "attach": case "state": return this.state(host);
       case "response-state": this.setResponse(host, typeof args.responseId === "string" ? args.responseId.slice(0, 500) : null); return {};
@@ -786,28 +810,48 @@ export class InBuiltBrowserService {
         if (waiter && waiter.tabId === args.tabId && host.activeTabId === args.tabId) waiter.resolve();
         return {};
       }
-      case "open": host.visible = true; if (!host.tabs.size) await this.createTab(host).navigate("about:blank"); this.claimView(host); break;
+      case "open": host.visible = true; if (![...host.tabs.values()].some(t => !t.destroyed)) await this.createTab(host).navigate("about:blank"); this.claimView(host); break;
       case "hide": host.visible = false; break;
       case "detach": this.detachView(host); host.bounds = null; break;
       case "new-tab": host.preserveUserSelection = !!host.agentResponseId && host.agentSessionTabIds.size > 0 || !!host.activity; host.visible = true; await this.createTab(host).navigate("about:blank"); break;
       case "select": {
-        this.findTab(host, args.tabId); host.preserveUserSelection = !!host.agentResponseId && host.agentSessionTabIds.size > 0 || !!host.activity; host.activeTabId = args.tabId; host.visible = true;
-        for (const waiter of host.cursorWaiters.values()) if (waiter.tabId !== host.activeTabId) waiter.resolve();
-        this.claimView(host); break;
+        const targetId = typeof args.tabId === "string" ? args.tabId : "";
+        const tab = host.tabs.get(targetId);
+        if (!tab || tab.destroyed) {
+          if (tab) this.pruneTab(tab);
+          const next = [...host.tabs.values()].find(t => !t.destroyed);
+          host.activeTabId = next?.id ?? null;
+        } else {
+          host.preserveUserSelection = !!host.agentResponseId && host.agentSessionTabIds.size > 0 || !!host.activity;
+          host.activeTabId = tab.id;
+          host.visible = true;
+          for (const waiter of host.cursorWaiters.values()) if (waiter.tabId !== host.activeTabId) waiter.resolve();
+          this.claimView(host);
+        }
+        break;
       }
-      case "close-tab": this.closeTab(host, active()); break;
+      case "close-tab": {
+        const targetId = typeof args.tabId === "string" ? args.tabId : host.activeTabId ?? "";
+        const tab = host.tabs.get(targetId) ?? this.allTabs.get(targetId);
+        if (tab) {
+          this.closeTab(host, tab);
+        } else if (host.activeTabId === targetId) {
+          host.activeTabId = [...host.tabs.values()].filter(t => !t.destroyed).map(t => t.id).at(-1) ?? null;
+        }
+        break;
+      }
       case "navigate": {
         const url = browserUrl(String(args.url ?? ""), true);
         this.allowedOrigins.add(browserOrigin(url));
-        const tab = host.tabs.size ? active() : this.createTab(host);
+        const tab = safeActive() ?? this.createTab(host);
         host.visible = true; this.claimView(host); this.changed(host);
         await tab.navigate(url); break;
       }
-      case "back": if (active().contents.navigationHistory.canGoBack()) active().contents.navigationHistory.goBack(); break;
-      case "forward": if (active().contents.navigationHistory.canGoForward()) active().contents.navigationHistory.goForward(); break;
-      case "reload": active().contents.reload(); break;
-      case "stop-loading": active().contents.stop(); break;
-      case "focus": this.claimView(host); this.layout(host); active().contents.focus(); break;
+      case "back": { const tab = safeActive(); if (tab?.contents.navigationHistory.canGoBack()) tab.contents.navigationHistory.goBack(); break; }
+      case "forward": { const tab = safeActive(); if (tab?.contents.navigationHistory.canGoForward()) tab.contents.navigationHistory.goForward(); break; }
+      case "reload": safeActive()?.contents.reload(); break;
+      case "stop-loading": safeActive()?.contents.stop(); break;
+      case "focus": { const tab = safeActive(); if (tab) { this.claimView(host); this.layout(host); tab.contents.focus(); } break; }
       case "present-frame": {
         if (host.bounds?.visible && host.bounds.composited && host.activeTabId === args.tabId && (host.bounds.frameGeneration === undefined || args.generation === host.bounds.frameGeneration)) { host.frameReadyFor = args.tabId; this.layout(host); }
         return;
@@ -816,8 +860,8 @@ export class InBuiltBrowserService {
         // Never redirect an input packet to an AI tab selected after the user
         // produced it. Packets from a tab that is no longer selected are stale.
         if (args.tabId !== undefined && args.tabId !== host.activeTabId) return;
-        if (!host.visible || !host.bounds?.visible || !host.bounds.composited || host.permission || active().dialog || this.selectedHosts.get(owner.id) !== host.id) return;
-        const tab = active();
+        const tab = safeActive();
+        if (!tab || !host.visible || !host.bounds?.visible || !host.bounds.composited || host.permission || tab.dialog || this.selectedHosts.get(owner.id) !== host.id) return;
         // Ownership lasts through the response, including gaps between tools.
         // Check here as well as in the UI to discard already-queued user input.
         if (this.isUserInputBlocked(tab)) {
@@ -842,10 +886,10 @@ export class InBuiltBrowserService {
         } else if (["copy", "cut", "paste", "selectAll", "undo", "redo"].includes(args.type)) tab.contents[args.type as "copy" | "cut" | "paste" | "selectAll" | "undo" | "redo"]();
         return;
       }
-      case "zoom": active().contents.setZoomFactor(finiteNumber(args.factor, "Zoom", 0.25, 5)); break;
-      case "find": return args.text ? active().contents.findInPage(String(args.text), { forward: args.forward !== false, findNext: args.next === true }) : active().contents.stopFindInPage("clearSelection");
-      case "external": { const url = browserUrl(active().contents.getURL()); if (!/^https?:/.test(url)) throw new Error("Only web URLs may be opened externally."); await shell.openExternal(url); break; }
-      case "devtools": active().contents.openDevTools({ mode: "detach" }); break;
+      case "zoom": { const tab = safeActive(); if (tab) tab.contents.setZoomFactor(finiteNumber(args.factor, "Zoom", 0.25, 5)); break; }
+      case "find": { const tab = safeActive(); if (tab) return args.text ? tab.contents.findInPage(String(args.text), { forward: args.forward !== false, findNext: args.next === true }) : tab.contents.stopFindInPage("clearSelection"); break; }
+      case "external": { const tab = safeActive(); if (tab) { const url = browserUrl(tab.contents.getURL()); if (!/^https?:/.test(url)) throw new Error("Only web URLs may be opened externally."); await shell.openExternal(url); } break; }
+      case "devtools": safeActive()?.contents.openDevTools({ mode: "detach" }); break;
       case "capture": return `data:image/png;base64,${await active().screenshot()}`;
       case "history": return this.history.filter(item => `${item.title} ${item.url}`.toLowerCase().includes(String(args.query ?? "").toLowerCase())).slice(-60).reverse();
       case "clear-history": this.history.length = 0; writeObject(path.join(this.dataDirectory, "history.json"), { items: [] }); break;
@@ -854,14 +898,14 @@ export class InBuiltBrowserService {
       case "approve": if (host.permission && host.permission.id === args.id) { if (args.allow === true) host.permission.allow(args.always === true); else host.permission.deny(); } break;
       case "pause": this.pause(host); break;
       case "resume": host.paused = false; break;
-      case "dialog": await active().cdp("Page.handleJavaScriptDialog", { accept: args.accept === true, promptText: String(args.text ?? "") }); break;
-      case "annotate": host.selection = null; await active().annotate(args.enabled !== false); break;
+      case "dialog": { const tab = safeActive(); if (tab) await tab.cdp("Page.handleJavaScriptDialog", { accept: args.accept === true, promptText: String(args.text ?? "") }); break; }
+      case "annotate": { host.selection = null; const tab = safeActive(); if (tab) await tab.annotate(args.enabled !== false); break; }
       case "discard-selection": host.selection = null; break;
       case "save-annotation": if (host.selection && typeof args.comment === "string" && args.comment.trim()) { host.annotations.push({ ...host.selection, comment: args.comment.slice(0, 8000), styles: args.styles ?? {}, id: randomUUID(), createdAt: new Date().toISOString() }); if (host.annotations.length > 100) host.annotations.shift(); host.selection = null; } break;
       case "remove-annotation": host.annotations = host.annotations.filter(a => a.id !== args.id); break;
-      case "style-preview": return active().driver({ action: "styles", selector: args.selector, styles: args.styles });
-      case "style-restore": return active().driver({ action: "restoreStyle", selector: args.selector, original: args.original });
-      case "viewport": host.viewport = args.width && args.height ? { width: finiteNumber(args.width, "width", 200, 3840), height: finiteNumber(args.height, "height", 200, 3840) } : null; await active().cdp(host.viewport ? "Emulation.setDeviceMetricsOverride" : "Emulation.clearDeviceMetricsOverride", host.viewport ? { ...host.viewport, deviceScaleFactor: 1, mobile: false } : {}); break;
+      case "style-preview": { const tab = host.tabs.get(String(args.tabId)) ?? safeActive(); if (tab && !tab.destroyed) return tab.driver({ action: "styles", selector: args.selector, styles: args.styles }); break; }
+      case "style-restore": { const tab = host.tabs.get(String(args.tabId)) ?? safeActive(); if (tab && !tab.destroyed) return tab.driver({ action: "restoreStyle", selector: args.selector, original: args.original }); break; }
+      case "viewport": { host.viewport = args.width && args.height ? { width: finiteNumber(args.width, "width", 200, 3840), height: finiteNumber(args.height, "height", 200, 3840) } : null; const tab = safeActive(); if (tab) await tab.cdp(host.viewport ? "Emulation.setDeviceMetricsOverride" : "Emulation.clearDeviceMetricsOverride", host.viewport ? { ...host.viewport, deviceScaleFactor: 1, mobile: false } : {}); break; }
       case "downloads-folder": shell.showItemInFolder([...this.downloads.values()].find(d => d.id === args.id)?.path ?? app.getPath("downloads")); break;
       case "cancel-download": this.downloads.get(String(args.id))?.item.cancel(); break;
       default: throw new Error("Unknown browser pane action.");

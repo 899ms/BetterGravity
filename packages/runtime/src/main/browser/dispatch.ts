@@ -29,7 +29,7 @@ function info(service: InBuiltBrowserService, host: BrowserHost): Record<string,
 }
 
 function tabs(service: InBuiltBrowserService, host: BrowserHost): Record<string, unknown>[] {
-  return [...host.tabs.values()].map(tab => ({ id: tab.id, providerTabId: tab.id, url: tab.state().url, title: tab.state().title,
+  return [...host.tabs.values()].filter(tab => !tab.destroyed).map(tab => ({ id: tab.id, providerTabId: tab.id, url: tab.state().url, title: tab.state().title,
     openedInConversationId: service.tabContext(tab), usedInCurrentConversation: host.agentTabIds.has(tab.id) }));
 }
 
@@ -58,7 +58,11 @@ export async function dispatchBrowserCommand(service: InBuiltBrowserService, com
       const tab = service.findTab(host, args.tab_id);
       return { id: tab.id, title: tab.state().title, url: tab.state().url };
     }
-    case "close_tab": service.closeTab(host, service.findTab(host, args.tab_id)); return {};
+    case "close_tab": {
+      const tab = host.tabs.get(typeof args.tab_id === "string" ? args.tab_id : host.activeTabId ?? "");
+      if (tab) service.closeTab(host, tab);
+      return {};
+    }
     case "name_session": host.name = String(args.name).slice(0, 160); service.changed(host); return {};
     case "mark_tab": service.findTab(host, args.tab_id).mark = args.status; return {};
     case "tab_manual_handoff_request": host.visible = true; service.pause(host); return {};

@@ -15,6 +15,7 @@ export interface NativeTabOptions {
   nativeWindow?: Electron.BrowserWindowConstructorOptions;
   autoApprove?(): boolean;
   changed(): void;
+  destroyed?(): void;
   popup(url: string, nativeWindow: Electron.BrowserWindowConstructorOptions): NativeBrowserTab;
   shortcut(action: string): void;
   selection(value: Record<string, unknown>): void;
@@ -79,6 +80,11 @@ export class NativeBrowserTab {
     // tokens, which some sites mistake for an unsupported browser engine.
     contents.setUserAgent(contents.getUserAgent().replace(/\s(?:Antigravity|Electron)\/\S+/g, ""));
     const changed = () => options.changed();
+    contents.once("destroyed", () => {
+      this.disposed = true;
+      options.destroyed?.();
+      changed();
+    });
     contents.on("page-title-updated", changed);
     contents.on("did-start-loading", changed);
     contents.on("did-stop-loading", changed);
@@ -444,7 +450,7 @@ export class NativeBrowserTab {
     this.logs.length = 0; this.events.length = 0; this.children.clear();
     if (!this.contents.isDestroyed()) {
       try { this.contents.debugger.detach(); } catch { /* The renderer may already be gone. */ }
-      this.contents.close({ waitForBeforeUnload: false });
+      try { this.contents.close({ waitForBeforeUnload: false }); } catch { /* Ignore close failure */ }
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T02:11:36.894Z",
+  "generatedAt": "2026-09-16T02:50:15.829Z",
   "entries": [
     {
       "id": "computer-use",
@@ -429,12 +429,12 @@
       "author": "BetterGravity Community",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/in-built-browser",
-      "bytes": 803507,
+      "bytes": 803710,
       "files": [
         {
           "name": "index.js",
-          "bytes": 109184,
-          "sha256": "86d777d8e4983e08c3cd4a09f16c9c563da4ce2565f5f582b1bd8f4574cf14a7"
+          "bytes": 109387,
+          "sha256": "5d1d6ac33143b2462402663cc1afcc04a2f62b2847b8300b24b488148290c800"
         },
         {
           "name": "mcp-server.cjs",

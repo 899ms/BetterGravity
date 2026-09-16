@@ -607,7 +607,14 @@ function button(label, icon, action, className = "bg-browser-icon") {
   const node = element("button", className); node.type = "button"; node.title = label; node.setAttribute("aria-label", label);
   node.innerHTML = svg(icon); node.addEventListener("click", action); return node;
 }
-function showError(error) { if (!disposed && errorBox) { errorBox.textContent = error?.message || String(error); errorBox.hidden = false; scheduleBounds(); } }
+function showError(error) {
+  if (disposed || !errorBox) return;
+  const message = error?.message || String(error);
+  if (message.includes("is no longer open")) return;
+  errorBox.textContent = message;
+  errorBox.hidden = false;
+  scheduleBounds();
+}
 async function request(action, args = {}) {
   if (disposed) return;
   if (!plugin.browser?.available) throw new Error("The native browser runtime update is ready. Restart Antigravity to load it.");
@@ -617,7 +624,7 @@ async function request(action, args = {}) {
 }
 const pageActions = new Set(["navigate", "back", "forward", "reload", "stop-loading", "focus", "zoom", "find", "annotate", "style-preview", "style-restore", "viewport"]);
 const act = (action, args) => agentControlsSelectedTab() && pageActions.has(action) ? Promise.resolve() : request(action, args).catch(showError);
-function activeTab() { return state?.tabs.find(tab => tab.id === state.activeTabId); }
+function activeTab() { return state?.tabs.find(tab => tab.id === state.activeTabId && tab.title !== "Closed tab"); }
 function isBrowserOpen() { return open && activeConversationContext() === context && nativePaneOpen(); }
 function endAgentSession() { agentSession = null; agentTabs.clear(); agentPoints.clear(); }
 function agentOwnsSelectedTab() { return agentTabs.has(state?.activeTabId); }
@@ -927,11 +934,12 @@ function mountPageTabs() {
 
 function renderPageTabs() {
   if (!tabs || !state) return;
-  const signature = JSON.stringify([open, ...state.tabs.map(tab => [tab.id, tab.title, tab.url, tab.loading, tab.id === state.activeTabId])]);
+  const tabList = (state.tabs || []).filter(tab => tab && tab.title !== "Closed tab");
+  const signature = JSON.stringify([open, ...tabList.map(tab => [tab.id, tab.title, tab.url, tab.loading, tab.id === state.activeTabId])]);
   if (signature === lastTabs) return;
   lastTabs = signature;
   const existing = new Map([...tabs.children].map(item => [item.dataset.bgBrowserPageTab, item]));
-  for (const [index, tab] of state.tabs.entries()) {
+  for (const [index, tab] of tabList.entries()) {
     let item = existing.get(tab.id);
     if (!item) {
       item = element("div", "bg-browser-tab"); item.setAttribute("role", "tab");
