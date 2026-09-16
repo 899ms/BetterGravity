@@ -406,7 +406,7 @@ export class InBuiltBrowserService {
     await until(async () => {
       if (host.revealReady < sequence) throw new Error("The browser pane has not finished opening.");
       return true;
-    }, check, 8000);
+    }, check, 20_000);
   }
 
   private async moveCursor(host: BrowserHost, tab: NativeBrowserTab, x: number, y: number, animateMovement: boolean): Promise<void> {
