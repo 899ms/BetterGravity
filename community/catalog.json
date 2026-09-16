@@ -895,6 +895,24 @@
       ]
     },
     {
+      "id": "catppuccin-turbo.css",
+      "kind": "theme",
+      "name": "Catppuccin Turbo",
+      "description": "Ultra-fast, zero-latency Catppuccin Mocha theme. Removes blur/shadow GPU lag, neutralizes sluggish entrance keyframes, and applies sleek, high-contrast dark tones.",
+      "version": "1.0.1",
+      "author": "Antigravity",
+      "source": "https://github.com/catppuccin/catppuccin",
+      "path": "community/themes/catppuccin-turbo.css",
+      "bytes": 8452,
+      "files": [
+        {
+          "name": "catppuccin-turbo.css",
+          "bytes": 8452,
+          "sha256": "b342630527b99ec3b5f8a6433634a0f36e4089de4fbffdde8c6b841475d39475"
+        }
+      ]
+    },
+    {
       "id": "midnight.css",
       "kind": "theme",
       "name": "Midnight",
