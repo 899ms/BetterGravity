@@ -145,4 +145,19 @@ describe("Fork Chat settings controls", () => {
     expect(native.style.display).toBe("none");
     expect(getComputedStyle(native).display).toBe("none");
   });
+
+  it("preserves SVG icon visibility in stock styles and defers to Gemini glyphs under Gemini App", async () => {
+    loadStyles(forkCss);
+    const turn = document.querySelector<HTMLElement>("[data-gemini-turn-actions]")!;
+    const btn = turn.querySelector<HTMLElement>("[data-fork-chat-btn]")!;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    btn.appendChild(svg);
+
+    // With Fork Chat styles alone, SVG is displayed and sized
+    expect(getComputedStyle(svg).display).not.toBe("none");
+
+    // When Gemini App styles are loaded on a Gemini turn, SVG is replaced by glyph
+    loadStyles(geminiCss);
+    expect(getComputedStyle(svg).display).toBe("none");
+  });
 });

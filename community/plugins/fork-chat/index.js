@@ -680,8 +680,11 @@ function decorateMenus(root = document.body) {
 function decorateTurnBar(bar) {
   if (!bar || bar.nodeType !== Node.ELEMENT_NODE || bar.closest(USER_MESSAGE)) return;
 
-  // Ensure turn action attribute is set so flexbox ordering (Like:1, Dislike:2, Copy:3, Fork:4) is active
-  if (bar.getAttribute("data-gemini-turn-actions") !== "true") {
+  // Only coordinate with Gemini App turn actions when Gemini App is active
+  const isGeminiExperience =
+    document.documentElement.hasAttribute("data-gemini-experience") ||
+    Boolean(document.querySelector("[data-gemini-experience]"));
+  if (isGeminiExperience && bar.getAttribute("data-gemini-turn-actions") !== "true") {
     bar.setAttribute("data-gemini-turn-actions", "true");
   }
 

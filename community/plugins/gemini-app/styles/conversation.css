@@ -1639,11 +1639,6 @@ div:has(> .flex.items-center.whitespace-nowrap.overflow-hidden.min-w-0):not(:has
   display: none !important;
 }
 
-/* Hide SVG icons only inside buttons that render Willow Luminous Symbols glyphs */
-[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button:is([aria-label="Good response"], [aria-label="Bad response"], [aria-label="Copy"], [aria-label="Copied"], [data-fork-chat-btn]) svg {
-  display: none !important;
-}
-
 /* For any future custom buttons with SVG icons, display centered 20px */
 [data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button svg {
   width: 20px !important;
@@ -1652,6 +1647,16 @@ div:has(> .flex.items-center.whitespace-nowrap.overflow-hidden.min-w-0):not(:has
   fill: currentColor !important;
   display: block !important;
   pointer-events: none !important;
+}
+
+/* Hide SVG icons only inside buttons that render Willow Luminous Symbols glyphs */
+[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button:is([aria-label="Good response"], [aria-label="Bad response"], [aria-label="Copy"], [aria-label="Copied"], [data-fork-chat-btn]) svg,
+[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button[data-fork-chat-btn] svg,
+[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button[aria-label="Good response"] svg,
+[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button[aria-label="Bad response"] svg,
+[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button[aria-label="Copy"] svg,
+[data-testid="conversation-view"] div.flex.w-full.items-start[data-gemini-turn-actions="true"] button[aria-label="Copied"] svg {
+  display: none !important;
 }
 
 /* Render Willow's Luminous Symbols glyphs via ::before */
