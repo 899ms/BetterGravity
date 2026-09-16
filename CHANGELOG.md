@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-09-17
+
+### Added
+
+- **Antigravity IDE Rejection & Guidance (Issue #12)**:
+  - Added detection and informative feedback for **Antigravity IDE** (`Antigravity IDE.exe`).
+  - BetterGravity is specifically engineered for the standalone **Antigravity 2.0** desktop app; attempting to patch the VS Code-based Antigravity IDE is safely prevented to avoid corrupting the editor workbench.
+  - The installer presents a clear banner guiding users to select their standalone Antigravity 2.0 installation folder.
+  - Added compatibility notices across documentation (`README.md` and `docs/installation.md`).
+
 ## [2.0.1] - 2026-09-16
 
 ### Fixed

@@ -106,6 +106,17 @@ export class InstallerController {
     byId<HTMLElement>("stateTitle").textContent = copy.title;
     byId<HTMLElement>("stateDescription").textContent = copy.description;
 
+    if (this.installation.kind === "unsupported-ide") {
+      byId<HTMLElement>("stateEyebrow").textContent = "ANTIGRAVITY IDE DETECTED";
+      byId<HTMLElement>("stateTitle").textContent = "Antigravity IDE is not supported yet.";
+      byId<HTMLElement>("stateDescription").textContent =
+        "BetterGravity supports the standalone Antigravity 2.0 desktop app, not the VS Code IDE. Please select your Antigravity 2.0 folder.";
+      byId<HTMLElement>("stateLabel").textContent = "IDE DETECTED";
+      pill.title = "IDE detected (not supported)";
+      pill.classList.remove("good");
+      pill.classList.add("bad");
+    }
+
     byId<HTMLElement>("hostVersion").textContent = this.installation.antigravityVersion
       ? `Version ${this.installation.antigravityVersion}`
       : "Antigravity not detected";
@@ -149,6 +160,12 @@ export class InstallerController {
       byId<HTMLElement>("installIcon").textContent = "check_circle";
       byId<HTMLElement>("installLabel").textContent = "BetterGravity is Active";
       byId<HTMLElement>("installHint").textContent = "Antigravity is currently patched and up to date.";
+      installButton.disabled = true;
+      installButton.onclick = null;
+    } else if (kind === "unsupported-ide") {
+      byId<HTMLElement>("installIcon").textContent = "close";
+      byId<HTMLElement>("installLabel").textContent = "IDE Not Supported";
+      byId<HTMLElement>("installHint").textContent = "Please locate the standalone Antigravity 2.0 app.";
       installButton.disabled = true;
       installButton.onclick = null;
     } else {

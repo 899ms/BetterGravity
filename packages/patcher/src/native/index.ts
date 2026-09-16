@@ -5,9 +5,9 @@ import type { InstallOperation, InstallationState, OperationResult, ProgressRepo
 import { createBootstrapArchive } from "./bootstrap.js";
 import { isBootstrapArchive, readHostManifest, readMarker, sha256, uncacheAll } from "./archive.js";
 import { closeAntigravity } from "./process.js";
-import { installationPaths, type InstallationPaths } from "./paths.js";
+import { installationPaths, isAntigravityIde, type InstallationPaths } from "./paths.js";
 
-export { findAntigravityInstallation, installationPaths, unpackedPath } from "./paths.js";
+export { findAntigravityInstallation, installationPaths, isAntigravityIde, unpackedPath } from "./paths.js";
 export { closeAntigravity, parseDarwinProcessIds, parsePosixProcessIds } from "./process.js";
 export { bootstrapSource } from "./bootstrap.js";
 
@@ -36,6 +36,16 @@ export interface UninstallOptions {
 }
 
 export function inspectInstallation(installationPath: string): InstallationState {
+  if (isAntigravityIde(installationPath)) {
+    return {
+      kind: "unsupported-ide",
+      patchState: "unknown",
+      path: installationPath,
+      nativePatchAvailable: false,
+      error: "Antigravity IDE (VS Code editor) is not supported yet. BetterGravity currently targets the standalone Antigravity 2.0 desktop application."
+    };
+  }
+
   const paths = installationPaths(installationPath);
   if (!fs.existsSync(paths.executable) || !fs.existsSync(paths.currentAsar)) {
     return { kind: "not-found", patchState: "unknown", nativePatchAvailable: false };
@@ -139,6 +149,7 @@ export async function runOperation(
 ): Promise<OperationResult> {
   const paths = installationPaths(installationPath);
   const before = inspectInstallation(installationPath);
+  if (before.kind === "unsupported-ide") throw new Error(before.error ?? "Antigravity IDE (VS Code editor) is not supported yet.");
   if (before.kind === "not-found") throw new Error("Antigravity could not be found at the selected location.");
   if (!before.nativePatchAvailable) {
     throw new Error(`Antigravity ${before.antigravityVersion ?? "unknown"} has not been marked compatible yet.`);
@@ -203,6 +214,9 @@ export async function uninstall(
   onProgress: ProgressReporter = () => undefined,
   options: UninstallOptions = {}
 ): Promise<OperationResult> {
+  if (isAntigravityIde(installationPath)) {
+    throw new Error("Antigravity IDE (VS Code editor) is not supported yet.");
+  }
   const paths = installationPaths(installationPath);
   if (!fs.existsSync(paths.originalAsar)) {
     throw new Error("BetterGravity is not installed at the selected location.");

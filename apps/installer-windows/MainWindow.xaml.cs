@@ -161,6 +161,26 @@ public partial class MainWindow : Window
             ReinstallActionBtn.IsEnabled = true;
             DeleteActionBtn.IsEnabled = true;
         }
+        else if (kind == "unsupported-ide")
+        {
+            StateEyebrowText.Text = "ANTIGRAVITY IDE DETECTED";
+            StateTitleText.Text = "Antigravity IDE is not supported yet.";
+            StateDescText.Text = "BetterGravity supports the standalone Antigravity 2.0 desktop app, not the VS Code IDE. Please select your Antigravity 2.0 folder.";
+
+            StateLabelText.Text = "IDE DETECTED";
+            StateDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F28B82"));
+            StatePillBorder.Background = Brushes.Transparent;
+            StatePillBorder.BorderBrush = Brushes.Transparent;
+            StatePillBorder.ToolTip = "Antigravity IDE is not supported yet";
+
+            InstallIconText.Text = "✕";
+            InstallLabelText.Text = "IDE Not Supported";
+            InstallHintText.Text = "Please locate the standalone Antigravity 2.0 app.";
+            InstallActionBtn.IsEnabled = false;
+
+            ReinstallActionBtn.IsEnabled = false;
+            DeleteActionBtn.IsEnabled = false;
+        }
         else
         {
             StateEyebrowText.Text = "READY FOR A LOCATION";
@@ -212,7 +232,15 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
         {
-            var targetPath = PatcherBridge.FindAntigravityPath(dialog.FolderName) ?? dialog.FolderName;
+            var folder = dialog.FolderName;
+            if (PatcherBridge.IsAntigravityIdePath(folder))
+            {
+                _state = await PatcherBridge.InspectAsync(folder);
+                UpdateUI();
+                return;
+            }
+
+            var targetPath = PatcherBridge.FindAntigravityPath(folder) ?? folder;
             _state = await PatcherBridge.InspectAsync(targetPath);
             UpdateUI();
         }

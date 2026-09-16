@@ -18,6 +18,30 @@ export interface InstallationPaths {
 export const RUNTIME_DIRECTORY_NAME = ".bettergravity";
 export const MARKER_NAME = ".bettergravity.json";
 
+export function isAntigravityIde(targetRoot: string): boolean {
+  if (!targetRoot) return false;
+  const normalized = targetRoot.replace(/\\/g, "/").trim().replace(/\/+$/, "");
+  const baseLower = path.basename(normalized).toLowerCase();
+  if (baseLower === "antigravity ide.exe" || baseLower === "antigravity ide") return true;
+
+  if (
+    fs.existsSync(path.join(normalized, "Antigravity IDE.exe")) ||
+    fs.existsSync(path.join(normalized, "antigravity ide.exe"))
+  ) {
+    return true;
+  }
+
+  const sub = path.join(normalized, "Antigravity IDE");
+  if (
+    fs.existsSync(path.join(sub, "Antigravity IDE.exe")) ||
+    fs.existsSync(path.join(sub, "antigravity ide.exe"))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function normalizeRoot(root: string): string {
   let normalized = path.normalize(root);
   try {

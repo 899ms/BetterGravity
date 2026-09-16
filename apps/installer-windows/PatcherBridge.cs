@@ -65,7 +65,7 @@ public static class PatcherBridge
                             if (appKey == null) continue;
 
                             var displayName = appKey.GetValue("DisplayName") as string;
-                            if (displayName != null && displayName.Contains("Antigravity", StringComparison.OrdinalIgnoreCase))
+                            if (displayName != null && displayName.Contains("Antigravity", StringComparison.OrdinalIgnoreCase) && !displayName.Contains("Antigravity IDE", StringComparison.OrdinalIgnoreCase))
                             {
                                 var installLocation = appKey.GetValue("InstallLocation") as string;
                                 if (!string.IsNullOrEmpty(installLocation))
@@ -128,6 +128,109 @@ public static class PatcherBridge
         }
 
         return TryFindFromRegistry();
+    }
+
+    public static bool IsAntigravityIdePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var trimmed = path.Trim().TrimEnd('\\', '/');
+        var name = Path.GetFileName(trimmed);
+        if (name.Equals("Antigravity IDE.exe", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Antigravity IDE", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (File.Exists(Path.Combine(trimmed, "Antigravity IDE.exe")) ||
+            File.Exists(Path.Combine(trimmed, "antigravity ide.exe")))
+        {
+            return true;
+        }
+
+        var sub = Path.Combine(trimmed, "Antigravity IDE");
+        if (File.Exists(Path.Combine(sub, "Antigravity IDE.exe")) ||
+            File.Exists(Path.Combine(sub, "antigravity ide.exe")))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static string? FindAntigravityIdePath()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+        var ideCandidates = new[]
+        {
+            Path.Combine(localAppData, "Programs", "Antigravity IDE"),
+            Path.Combine(localAppData, "Antigravity IDE"),
+            Path.Combine(programFiles, "Antigravity IDE"),
+            Path.Combine(programFilesX86, "Antigravity IDE"),
+            Path.Combine(appData, "Programs", "Antigravity IDE")
+        };
+
+        foreach (var dir in ideCandidates)
+        {
+            if (Directory.Exists(dir) && IsAntigravityIdePath(dir))
+            {
+                return dir;
+            }
+        }
+
+        try
+        {
+            var hives = new[] { Registry.CurrentUser, Registry.LocalMachine };
+            var rootKeys = new[] { @"Software\Microsoft\Windows\CurrentVersion\Uninstall", @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" };
+
+            foreach (var hive in hives)
+            {
+                foreach (var subKeyPath in rootKeys)
+                {
+                    try
+                    {
+                        using var key = hive.OpenSubKey(subKeyPath);
+                        if (key == null) continue;
+
+                        foreach (var subName in key.GetSubKeyNames())
+                        {
+                            try
+                            {
+                                using var appKey = key.OpenSubKey(subName);
+                                if (appKey == null) continue;
+
+                                var displayName = appKey.GetValue("DisplayName") as string;
+                                if (displayName != null && displayName.Contains("Antigravity IDE", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var installLocation = appKey.GetValue("InstallLocation") as string;
+                                    if (!string.IsNullOrEmpty(installLocation))
+                                    {
+                                        var trimmed = installLocation.Trim().TrimEnd('\\', '/');
+                                        if (IsAntigravityIdePath(trimmed)) return trimmed;
+                                    }
+
+                                    var displayIcon = appKey.GetValue("DisplayIcon") as string;
+                                    if (!string.IsNullOrEmpty(displayIcon))
+                                    {
+                                        var iconPath = displayIcon.Trim().Trim('\"');
+                                        var dir = Path.GetDirectoryName(iconPath);
+                                        if (!string.IsNullOrEmpty(dir) && IsAntigravityIdePath(dir)) return dir;
+                                    }
+                                }
+                            }
+                            catch {}
+                        }
+                    }
+                    catch {}
+                }
+            }
+        }
+        catch {}
+
+        return null;
     }
 
     private static (string FileName, bool RunAsNode) ResolveRunner(string? targetInstallationPath)
@@ -336,11 +439,27 @@ public static class PatcherBridge
             "Programs", "Antigravity");
         if (Directory.Exists(standard)) return standard;
 
+        // 4. Check if Antigravity IDE is present so user receives an informative message
+        var ideFound = FindAntigravityIdePath();
+        if (!string.IsNullOrEmpty(ideFound)) return ideFound;
+
         return null;
     }
 
     public static async Task<InstallationState> InspectAsync(string installationPath)
     {
+        if (IsAntigravityIdePath(installationPath))
+        {
+            return new InstallationState(
+                "unsupported-ide",
+                "unknown",
+                installationPath,
+                null,
+                null,
+                false,
+                "Antigravity IDE (VS Code editor) is not supported yet. BetterGravity currently targets the standalone Antigravity 2.0 desktop application.");
+        }
+
         try
         {
             var script = GetPatcherScriptPath();

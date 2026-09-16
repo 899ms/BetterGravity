@@ -45,6 +45,13 @@ describe("inspectInstallation", () => {
     await writeHostArchive(installationPaths(fixture.root).currentAsar, "3.0.0");
     expect(inspectInstallation(fixture.root).nativePatchAvailable).toBe(false);
   });
+
+  it("reports Antigravity IDE as unsupported-ide with a helpful message", () => {
+    const idePath = path.join(fixture.root, "..", "Antigravity IDE");
+    const state = inspectInstallation(idePath);
+    expect(state.kind).toBe("unsupported-ide");
+    expect(state.error).toMatch(/Antigravity IDE/);
+  });
 });
 
 describe("install", () => {

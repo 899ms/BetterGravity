@@ -25,6 +25,9 @@ Drop in a `.css` file and the interface restyles instantly. Write a plugin in pl
 
 ---
 
+> [!IMPORTANT]
+> **Compatibility Notice**: BetterGravity is designed specifically for the standalone **Google Antigravity 2.0 desktop application** (`Antigravity.exe` / `Antigravity.app`). It does **not** currently support the separate VS Code-based **Antigravity IDE** (`Antigravity IDE.exe`). Dedicated Antigravity IDE support is planned for a future release.
+
 ## What BetterGravity unlocks
 
 BetterGravity is both an extensible modification platform and a curated suite of power-user capabilities built directly into Antigravity.

@@ -1,6 +1,6 @@
 export type InstallOperation = "install" | "update" | "reinstall" | "repair" | "uninstall";
 
-export type InstallationKind = "not-found" | "detected" | "patched" | "needs-repatch" | "corrupted";
+export type InstallationKind = "not-found" | "detected" | "patched" | "needs-repatch" | "corrupted" | "unsupported-ide";
 
 export type PatchState = "unpatched" | "patched" | "needs-repatch" | "corrupted" | "unknown";
 

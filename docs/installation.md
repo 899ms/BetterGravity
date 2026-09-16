@@ -85,6 +85,9 @@ the installer will report **Antigravity changed** next time you open it, and
 
 ## Troubleshooting
 
+**Does BetterGravity support Antigravity IDE?**
+No. Google offers two distinct applications: the standalone **Antigravity 2.0** desktop app (`Antigravity.exe`) and the VS Code-based **Antigravity IDE** (`Antigravity IDE.exe`). BetterGravity is currently built specifically for the Antigravity 2.0 desktop app. Antigravity IDE support is on the roadmap for a future release.
+
 **The installer says Antigravity was not found.**
 Use **Choose a different location** and pick the folder containing
 `Antigravity.exe` (Windows), `/Applications/Antigravity.app` (macOS), or
