@@ -64,3 +64,6 @@ trust.json
 # Local personal backup scripts
 backup.cmd
 backup*.cmd
+
+# Plugin runtime signal files
+interrupt.signal

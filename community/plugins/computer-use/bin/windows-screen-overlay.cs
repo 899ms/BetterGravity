@@ -1140,8 +1140,10 @@ namespace ComputerUseOverlay {
             Action act = () => {
                 BeginAnimation(UIElement.OpacityProperty, null);
                 try {
-                    File.Delete(@"C:\Users\Yashjit 2\AppData\Roaming\BetterGravity\plugins\computer-use\interrupt.signal");
-                    File.Delete(@"C:\Users\Yashjit 2\Workspace\BetterGravity\community\plugins\computer-use\interrupt.signal");
+                    string appDataSignal = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BetterGravity", "plugins", "computer-use", "interrupt.signal");
+                    if (File.Exists(appDataSignal)) File.Delete(appDataSignal);
+                    string localSignal = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "interrupt.signal"));
+                    if (File.Exists(localSignal)) File.Delete(localSignal);
                 } catch {}
                 if (statusText != null) statusText.Text = "Antigravity is controlling...";
                 EnableInputBlock();
@@ -1188,8 +1190,8 @@ namespace ComputerUseOverlay {
             DisableInputBlock();
             try {
                 string[] signalPaths = new string[] {
-                    @"C:\Users\Yashjit 2\AppData\Roaming\BetterGravity\plugins\computer-use\interrupt.signal",
-                    @"C:\Users\Yashjit 2\Workspace\BetterGravity\community\plugins\computer-use\interrupt.signal"
+                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BetterGravity", "plugins", "computer-use", "interrupt.signal"),
+                    System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "interrupt.signal"))
                 };
                 foreach (string p in signalPaths) {
                     string dir = System.IO.Path.GetDirectoryName(p);

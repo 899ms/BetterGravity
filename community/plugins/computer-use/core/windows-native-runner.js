@@ -6,6 +6,7 @@
 import { exec, execFile, execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,7 +16,13 @@ const CS_PATH = path.resolve(__dirname, "../bin/windows-native-runner.cs");
 const OVERLAY_BIN = path.resolve(__dirname, "../bin/windows-screen-overlay.exe");
 const INTERRUPT_PATHS = [
   path.resolve(__dirname, "../interrupt.signal"),
-  "C:\\Users\\Yashjit 2\\Workspace\\BetterGravity\\community\\plugins\\computer-use\\interrupt.signal",
+  path.join(
+    process.env.APPDATA || (process.platform === "win32" ? path.join(os.homedir(), "AppData", "Roaming") : path.join(os.homedir(), ".config")),
+    "BetterGravity",
+    "plugins",
+    "computer-use",
+    "interrupt.signal"
+  ),
 ];
 const CSC_COMPILER = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe";
 

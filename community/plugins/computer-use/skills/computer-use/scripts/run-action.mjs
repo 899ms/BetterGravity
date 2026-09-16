@@ -1,6 +1,35 @@
 import http from "node:http";
-import { ComputerUseToolRegistry } from "file:///C:/Users/Yashjit 2/AppData/Roaming/BetterGravity/plugins/computer-use/tools/index.js";
+import path from "node:path";
+import os from "node:os";
+import { pathToFileURL, fileURLToPath } from "node:url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+async function loadRegistryClass() {
+  const candidates = [
+    path.resolve(__dirname, "../../../tools/index.js"),
+    path.resolve(__dirname, "../tools/index.js"),
+    path.join(
+      process.env.APPDATA || (process.platform === "win32" ? path.join(os.homedir(), "AppData", "Roaming") : path.join(os.homedir(), ".config")),
+      "BetterGravity",
+      "plugins",
+      "computer-use",
+      "tools",
+      "index.js"
+    ),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const mod = await import(pathToFileURL(candidate).href);
+      if (mod.ComputerUseToolRegistry) {
+        return mod.ComputerUseToolRegistry;
+      }
+    } catch {}
+  }
+  throw new Error("Could not find ComputerUseToolRegistry in plugin directories.");
+}
 function notifyBridge(type, data) {
   try {
     const req = http.request({
@@ -37,6 +66,7 @@ async function main() {
   notifyBridge("tool_start", { toolName, args: toolArgs });
 
   try {
+    const ComputerUseToolRegistry = await loadRegistryClass();
     const registry = new ComputerUseToolRegistry();
     const result = await registry.executeTool(toolName, toolArgs);
     notifyBridge("tool_complete", { toolName, args: toolArgs, result });

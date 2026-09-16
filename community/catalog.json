@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-15T15:46:18.628Z",
+  "generatedAt": "2026-09-16T02:11:36.894Z",
   "entries": [
     {
       "id": "computer-use",
@@ -14,7 +14,7 @@
         "windows"
       ],
       "path": "community/plugins/computer-use",
-      "bytes": 945186,
+      "bytes": 947463,
       "files": [
         {
           "name": "assets/agent-cursor.png",
@@ -63,8 +63,8 @@
         },
         {
           "name": "bin/run-action.mjs",
-          "bytes": 1453,
-          "sha256": "d2538ec6f14bf82a55420a16e200dcb429d616ba7a7c4530e96674799a00efbc"
+          "bytes": 2334,
+          "sha256": "eee74c56ff78157bed661773d366cf229e7b20af7134bdfd8eec32de559e9e8b"
         },
         {
           "name": "bin/windows-native-runner.cs",
@@ -83,13 +83,13 @@
         },
         {
           "name": "bin/windows-screen-overlay.cs",
-          "bytes": 56660,
-          "sha256": "42adfc20aab9ef55677e769173d24d16e4532bebc8e42b60a82a6b1630bc992b"
+          "bytes": 57012,
+          "sha256": "2059e9e4eed91f12441846a71f92b6aed98d4cfc043595157df7f43dccd7b547"
         },
         {
           "name": "bin/windows-screen-overlay.exe",
           "bytes": 42496,
-          "sha256": "53e07bd9b863d22cc681e7abbf4a6a6c386792c3fc1209d688ba66d10f0843d8"
+          "sha256": "ba550c64571aee42b3db32e56c1875a7f8ed3da4dfc484a298b5be53544d01e8"
         },
         {
           "name": "core/approval-manager.js",
@@ -133,8 +133,8 @@
         },
         {
           "name": "core/windows-native-runner.js",
-          "bytes": 9104,
-          "sha256": "4961982ce434d0c2d1afc81daeb8416fd4c41aeebc106c7ab5c8042004bde3c1"
+          "bytes": 9267,
+          "sha256": "3383175ed0f5e1414171cd31db0012cdf063058eba104b3dcde120b129997399"
         },
         {
           "name": "cursor/agent-cursor.png",
@@ -183,8 +183,8 @@
         },
         {
           "name": "skills/computer-use/scripts/run-action.mjs",
-          "bytes": 1453,
-          "sha256": "d2538ec6f14bf82a55420a16e200dcb429d616ba7a7c4530e96674799a00efbc"
+          "bytes": 2334,
+          "sha256": "eee74c56ff78157bed661773d366cf229e7b20af7134bdfd8eec32de559e9e8b"
         },
         {
           "name": "skills/computer-use/SKILL.md",
