@@ -27,9 +27,26 @@ struct ContentView: View {
 
                 Spacer()
 
-                Text("v2.0.2")
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(model.syncState == "LATEST" ? Color(red: 0.506, green: 0.788, blue: 0.584) : (model.syncState == "SYNCING" ? Color(red: 0.54, green: 0.71, blue: 0.97) : Color(red: 0.557, green: 0.569, blue: 0.561)))
+                        .frame(width: 6, height: 6)
+                    Text(model.syncState)
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .foregroundColor(model.syncState == "LATEST" ? Color(red: 0.506, green: 0.788, blue: 0.584) : (model.syncState == "SYNCING" ? Color(red: 0.54, green: 0.71, blue: 0.97) : Color(red: 0.557, green: 0.569, blue: 0.561)))
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2.5)
+                .background(Color(red: 0.078, green: 0.129, blue: 0.094))
+                .cornerRadius(6)
+
+                Text(model.activeVersion)
                     .font(.system(size: 11, weight: .regular, design: .monospaced))
                     .foregroundColor(Color(red: 0.557, green: 0.569, blue: 0.561))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2.5)
+                    .background(Color(red: 0.11, green: 0.114, blue: 0.129))
+                    .cornerRadius(6)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 14)

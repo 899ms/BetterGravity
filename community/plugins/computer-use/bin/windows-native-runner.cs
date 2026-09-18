@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Windows.Automation;
 using System.Windows.Forms;
 
 namespace WindowsComputerUse {
@@ -62,6 +64,9 @@ namespace WindowsComputerUse {
 
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
@@ -183,10 +188,135 @@ namespace WindowsComputerUse {
             up.u.mi.dwFlags = upFlag;
             up.u.mi.dwExtraInfo = (UIntPtr)0x12345;
             SendInput(1, new INPUT[] { down }, Marshal.SizeOf(typeof(INPUT)));
-            mouse_event(downFlag, 0, 0, 0, UIntPtr.Zero);
             Thread.Sleep(30);
             SendInput(1, new INPUT[] { up }, Marshal.SizeOf(typeof(INPUT)));
-            mouse_event(upFlag, 0, 0, 0, UIntPtr.Zero);
+        }
+
+        public static void NotifyOverlayPoint(int x, int y, string status = "Antigravity is controlling...") {
+            try {
+                using (TcpClient client = new TcpClient()) {
+                    IAsyncResult ar = client.BeginConnect("127.0.0.1", 51830, null, null);
+                    if (ar.AsyncWaitHandle.WaitOne(80) && client.Connected) {
+                        client.EndConnect(ar);
+                        using (NetworkStream stream = client.GetStream())
+                        using (StreamWriter w = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true }) {
+                            w.WriteLine(string.Format("{{\"x\":{0},\"y\":{1},\"status\":\"{2}\"}}", x, y, status));
+                        }
+                    }
+                }
+            } catch {}
+        }
+
+        public static Point ResolveCoordinates(double inputX, double inputY, IntPtr hWnd) {
+            if (hWnd != IntPtr.Zero) {
+                RECT r;
+                if (GetWindowRect(hWnd, out r)) {
+                    Rectangle screenBounds = Screen.PrimaryScreen.Bounds;
+                    try { screenBounds = Screen.FromHandle(hWnd).Bounds; } catch {}
+
+                    int rx = Math.Max(screenBounds.Left, r.Left);
+                    int ry = Math.Max(screenBounds.Top, r.Top);
+                    int rw = Math.Min(screenBounds.Right - rx, Math.Max(100, r.Right - rx));
+                    int rh = Math.Min(screenBounds.Bottom - ry, Math.Max(100, r.Bottom - ry));
+
+                    if (rw > 0 && rh > 0) {
+                        // 1. Normalized 0.0 .. 1.0
+                        if (inputX >= 0.0 && inputX <= 1.0 && inputY >= 0.0 && inputY <= 1.0 && (inputX > 0 || inputY > 0)) {
+                            return new Point(rx + (int)Math.Round(inputX * rw), ry + (int)Math.Round(inputY * rh));
+                        }
+
+                        // 2. Normalized 0 .. 1000 (standard for Gemini / vision models)
+                        if (inputX >= 0.0 && inputX <= 1000.0 && inputY >= 0.0 && inputY <= 1000.0 &&
+                            (inputX > rw || inputY > rh) && (rw > 1000 || rh > 1000)) {
+                            return new Point(rx + (int)Math.Round(inputX * rw / 1000.0), ry + (int)Math.Round(inputY * rh / 1000.0));
+                        }
+
+                        // 3. Absolute screen coordinates that already fall within the visible window rect
+                        if (inputX >= rx && inputX <= rx + rw && inputY >= ry && inputY <= ry + rh && (rx > 30 || ry > 30)) {
+                            return new Point((int)Math.Round(inputX), (int)Math.Round(inputY));
+                        }
+
+                        // 4. Window-relative coordinates from window screenshot (0..rw, 0..rh)
+                        if (inputX >= 0 && inputX <= rw && inputY >= 0 && inputY <= rh) {
+                            return new Point(rx + (int)Math.Round(inputX), ry + (int)Math.Round(inputY));
+                        }
+
+                        // 5. Fallback within window boundaries
+                        return new Point(rx + (int)Math.Round(inputX), ry + (int)Math.Round(inputY));
+                    }
+                }
+            }
+
+            // Desktop coordinate resolution (multi-monitor aware)
+            Rectangle primaryBounds = Screen.PrimaryScreen.Bounds;
+            if (hWnd != IntPtr.Zero) {
+                try { primaryBounds = Screen.FromHandle(hWnd).Bounds; } catch {}
+            }
+
+            // Normalized 0.0 .. 1.0 for full screen
+            if (inputX >= 0.0 && inputX <= 1.0 && inputY >= 0.0 && inputY <= 1.0 && (inputX > 0 || inputY > 0)) {
+                return new Point(primaryBounds.Left + (int)Math.Round(inputX * primaryBounds.Width),
+                                 primaryBounds.Top + (int)Math.Round(inputY * primaryBounds.Height));
+            }
+
+            // Normalized 0 .. 1000 for full screen
+            if (inputX >= 0.0 && inputX <= 1000.0 && inputY >= 0.0 && inputY <= 1000.0 &&
+                (inputX > primaryBounds.Width || inputY > primaryBounds.Height)) {
+                return new Point(primaryBounds.Left + (int)Math.Round(inputX * primaryBounds.Width / 1000.0),
+                                 primaryBounds.Top + (int)Math.Round(inputY * primaryBounds.Height / 1000.0));
+            }
+
+            return new Point((int)Math.Round(inputX), (int)Math.Round(inputY));
+        }
+
+        public static List<AutomationElement> GetInteractiveElements(IntPtr hWnd) {
+            List<AutomationElement> list = new List<AutomationElement>();
+            try {
+                AutomationElement root = (hWnd != IntPtr.Zero)
+                    ? AutomationElement.FromHandle(hWnd)
+                    : AutomationElement.RootElement;
+                if (root == null) return list;
+
+                Condition cond = new OrCondition(
+                    new PropertyCondition(AutomationElement.IsInvokePatternAvailableProperty, true),
+                    new PropertyCondition(AutomationElement.IsValuePatternAvailableProperty, true),
+                    new PropertyCondition(AutomationElement.IsTogglePatternAvailableProperty, true),
+                    new PropertyCondition(AutomationElement.IsSelectionItemPatternAvailableProperty, true),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.MenuItem),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.CheckBox),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Hyperlink)
+                );
+
+                AutomationElementCollection found = root.FindAll(TreeScope.Descendants, cond);
+                if (found != null) {
+                    for (int i = 0; i < Math.Min(found.Count, 120); i++) {
+                        AutomationElement el = found[i];
+                        try {
+                            var r = el.Current.BoundingRectangle;
+                            if (r.Width > 4 && r.Height > 4 && !r.IsEmpty) {
+                                list.Add(el);
+                            }
+                        } catch {}
+                    }
+                }
+            } catch {}
+            return list;
+        }
+
+        public static Point GetElementCenterPoint(IntPtr hWnd, int index) {
+            try {
+                var elements = GetInteractiveElements(hWnd);
+                if (index >= 0 && index < elements.Count) {
+                    var rect = elements[index].Current.BoundingRectangle;
+                    if (!rect.IsEmpty && rect.Width > 0 && rect.Height > 0) {
+                        return new Point((int)(rect.Left + rect.Width / 2), (int)(rect.Top + rect.Height / 2));
+                    }
+                }
+            } catch {}
+            return new Point(-1, -1);
         }
 
         public static void SendKeyDown(ushort vk) {
@@ -247,7 +377,11 @@ namespace WindowsComputerUse {
                 if (fgThread != 0 && fgThread != curThread) {
                     attached = AttachThreadInput(curThread, fgThread, true);
                 }
-                ShowWindow(matchedHwnd, 3); // SW_MAXIMIZE (keeps app maximized full-screen, never shrinks or minimizes)
+                if (IsIconic(matchedHwnd)) {
+                    ShowWindow(matchedHwnd, 9); // SW_RESTORE if minimized
+                } else {
+                    ShowWindow(matchedHwnd, 5); // SW_SHOW without resizing or moving
+                }
                 SetForegroundWindow(matchedHwnd);
                 SwitchToThisWindow(matchedHwnd, true);
                 if (attached) {
@@ -469,13 +603,39 @@ namespace WindowsComputerUse {
 
                 case "click": {
                     string app = args.ContainsKey("app") ? args["app"] : "";
-                    if (!string.IsNullOrEmpty(app)) FocusAppWindow(app);
+                    IntPtr hwnd = IntPtr.Zero;
+                    if (!string.IsNullOrEmpty(app)) {
+                        hwnd = FocusAppWindow(app);
+                    } else {
+                        hwnd = GetForegroundWindow();
+                    }
 
-                    int x = args.ContainsKey("x") ? int.Parse(args["x"]) : Cursor.Position.X;
-                    int y = args.ContainsKey("y") ? int.Parse(args["y"]) : Cursor.Position.Y;
+                    int x = Cursor.Position.X;
+                    int y = Cursor.Position.Y;
+
+                    if (args.ContainsKey("element_index")) {
+                        int elIdx = 0;
+                        if (int.TryParse(args["element_index"], out elIdx)) {
+                            Point ptEl = GetElementCenterPoint(hwnd, elIdx);
+                            if (ptEl.X >= 0 && ptEl.Y >= 0) {
+                                x = ptEl.X;
+                                y = ptEl.Y;
+                            }
+                        }
+                    } else if (args.ContainsKey("x") && args.ContainsKey("y")) {
+                        double rx, ry;
+                        if (double.TryParse(args["x"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rx) &&
+                            double.TryParse(args["y"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out ry)) {
+                            Point resolved = ResolveCoordinates(rx, ry, hwnd);
+                            x = resolved.X;
+                            y = resolved.Y;
+                        }
+                    }
+
                     string button = args.ContainsKey("button") ? args["button"].ToLower() : "left";
                     int count = args.ContainsKey("count") ? int.Parse(args["count"]) : 1;
 
+                    NotifyOverlayPoint(x, y, "Antigravity is clicking...");
                     SetCursorPos(x, y);
                     Cursor.Position = new Point(x, y);
                     Thread.Sleep(30);
@@ -496,44 +656,110 @@ namespace WindowsComputerUse {
 
                 case "drag": {
                     string app = args.ContainsKey("app") ? args["app"] : "";
-                    if (!string.IsNullOrEmpty(app)) FocusAppWindow(app);
+                    IntPtr hwnd = IntPtr.Zero;
+                    if (!string.IsNullOrEmpty(app)) {
+                        hwnd = FocusAppWindow(app);
+                    } else {
+                        hwnd = GetForegroundWindow();
+                    }
 
-                    int fx = args.ContainsKey("from_x") ? int.Parse(args["from_x"]) : Cursor.Position.X;
-                    int fy = args.ContainsKey("from_y") ? int.Parse(args["from_y"]) : Cursor.Position.Y;
-                    int tx = args.ContainsKey("to_x") ? int.Parse(args["to_x"]) : fx;
-                    int ty = args.ContainsKey("to_y") ? int.Parse(args["to_y"]) : fy;
+                    int fx = Cursor.Position.X;
+                    int fy = Cursor.Position.Y;
+                    int tx = fx;
+                    int ty = fy;
 
+                    if (args.ContainsKey("from_x") && args.ContainsKey("from_y")) {
+                        double rfx, rfy;
+                        if (double.TryParse(args["from_x"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rfx) &&
+                            double.TryParse(args["from_y"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rfy)) {
+                            Point ptFrom = ResolveCoordinates(rfx, rfy, hwnd);
+                            fx = ptFrom.X;
+                            fy = ptFrom.Y;
+                        }
+                    }
+
+                    if (args.ContainsKey("to_x") && args.ContainsKey("to_y")) {
+                        double rtx, rty;
+                        if (double.TryParse(args["to_x"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rtx) &&
+                            double.TryParse(args["to_y"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rty)) {
+                            Point ptTo = ResolveCoordinates(rtx, rty, hwnd);
+                            tx = ptTo.X;
+                            ty = ptTo.Y;
+                        }
+                    } else {
+                        tx = fx;
+                        ty = fy;
+                    }
+
+                    NotifyOverlayPoint(fx, fy, "Antigravity is dragging...");
                     SetCursorPos(fx, fy);
                     Cursor.Position = new Point(fx, fy);
                     Thread.Sleep(40);
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+
+                    INPUT down = new INPUT { type = INPUT_MOUSE };
+                    down.u.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+                    down.u.mi.dwExtraInfo = (UIntPtr)0x12345;
+                    SendInput(1, new INPUT[] { down }, Marshal.SizeOf(typeof(INPUT)));
                     Thread.Sleep(40);
 
-                    // Interpolate
-                    int steps = 15;
+                    // Interpolate with MOUSEEVENTF_MOVE
+                    int steps = 20;
                     for (int i = 1; i <= steps; i++) {
                         int cx = fx + (tx - fx) * i / steps;
                         int cy = fy + (ty - fy) * i / steps;
                         SetCursorPos(cx, cy);
                         Cursor.Position = new Point(cx, cy);
+                        mouse_event(0x0001, 0, 0, 0, UIntPtr.Zero);
                         Thread.Sleep(10);
                     }
 
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+                    INPUT up = new INPUT { type = INPUT_MOUSE };
+                    up.u.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+                    up.u.mi.dwExtraInfo = (UIntPtr)0x12345;
+                    SendInput(1, new INPUT[] { up }, Marshal.SizeOf(typeof(INPUT)));
+                    Thread.Sleep(30);
+
+                    NotifyOverlayPoint(tx, ty, "Done");
                     return string.Format("{{\"status\":\"success\",\"action\":\"drag\",\"from\":[{0},{1}],\"to\":[{2},{3}]}}", fx, fy, tx, ty);
                 }
 
                 case "scroll": {
                     string app = args.ContainsKey("app") ? args["app"] : "";
-                    if (!string.IsNullOrEmpty(app)) FocusAppWindow(app);
+                    IntPtr hwnd = IntPtr.Zero;
+                    if (!string.IsNullOrEmpty(app)) {
+                        hwnd = FocusAppWindow(app);
+                    } else {
+                        hwnd = GetForegroundWindow();
+                    }
 
-                    int x = args.ContainsKey("x") ? int.Parse(args["x"]) : Cursor.Position.X;
-                    int y = args.ContainsKey("y") ? int.Parse(args["y"]) : Cursor.Position.Y;
+                    int x = Cursor.Position.X;
+                    int y = Cursor.Position.Y;
+
+                    if (args.ContainsKey("element_index")) {
+                        int elIdx = 0;
+                        if (int.TryParse(args["element_index"], out elIdx)) {
+                            Point ptEl = GetElementCenterPoint(hwnd, elIdx);
+                            if (ptEl.X >= 0 && ptEl.Y >= 0) {
+                                x = ptEl.X;
+                                y = ptEl.Y;
+                            }
+                        }
+                    } else if (args.ContainsKey("x") && args.ContainsKey("y")) {
+                        double rx, ry;
+                        if (double.TryParse(args["x"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rx) &&
+                            double.TryParse(args["y"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out ry)) {
+                            Point resolved = ResolveCoordinates(rx, ry, hwnd);
+                            x = resolved.X;
+                            y = resolved.Y;
+                        }
+                    }
+
                     string dir = args.ContainsKey("direction") ? args["direction"].ToLower() : "down";
                     int pages = args.ContainsKey("pages") ? int.Parse(args["pages"]) : 1;
 
                     SetCursorPos(x, y);
                     Cursor.Position = new Point(x, y);
+                    NotifyOverlayPoint(x, y, "Antigravity is scrolling...");
                     Thread.Sleep(30);
 
                     int delta = (dir == "up" ? 120 : -120) * pages;
@@ -545,16 +771,38 @@ namespace WindowsComputerUse {
                 case "type":
                 case "type_text": {
                     string app = args.ContainsKey("app") ? args["app"] : "";
-                    if (!string.IsNullOrEmpty(app)) FocusAppWindow(app);
+                    IntPtr hwnd = IntPtr.Zero;
+                    if (!string.IsNullOrEmpty(app)) {
+                        hwnd = FocusAppWindow(app);
+                    } else {
+                        hwnd = GetForegroundWindow();
+                    }
 
-                    if (args.ContainsKey("x") && args.ContainsKey("y")) {
-                        int x = int.Parse(args["x"]);
-                        int y = int.Parse(args["y"]);
-                        SetCursorPos(x, y);
-                        Cursor.Position = new Point(x, y);
-                        Thread.Sleep(30);
-                        SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
-                        Thread.Sleep(80);
+                    if (args.ContainsKey("element_index")) {
+                        int elIdx = 0;
+                        if (int.TryParse(args["element_index"], out elIdx)) {
+                            Point ptEl = GetElementCenterPoint(hwnd, elIdx);
+                            if (ptEl.X >= 0 && ptEl.Y >= 0) {
+                                SetCursorPos(ptEl.X, ptEl.Y);
+                                Cursor.Position = ptEl;
+                                NotifyOverlayPoint(ptEl.X, ptEl.Y, "Antigravity is typing...");
+                                Thread.Sleep(30);
+                                SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+                                Thread.Sleep(60);
+                            }
+                        }
+                    } else if (args.ContainsKey("x") && args.ContainsKey("y")) {
+                        double rx, ry;
+                        if (double.TryParse(args["x"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out rx) &&
+                            double.TryParse(args["y"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out ry)) {
+                            Point resolved = ResolveCoordinates(rx, ry, hwnd);
+                            SetCursorPos(resolved.X, resolved.Y);
+                            Cursor.Position = resolved;
+                            NotifyOverlayPoint(resolved.X, resolved.Y, "Antigravity is typing...");
+                            Thread.Sleep(30);
+                            SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+                            Thread.Sleep(60);
+                        }
                     }
 
                     string text = args.ContainsKey("text") ? args["text"] : "";
@@ -573,6 +821,132 @@ namespace WindowsComputerUse {
                     return string.Format("{{\"status\":\"success\",\"action\":\"press_key\",\"key\":\"{0}\"}}", JsonEscape(key));
                 }
 
+                case "perform_accessibility_action": {
+                    string app = args.ContainsKey("app") ? args["app"] : "";
+                    IntPtr hwnd = IntPtr.Zero;
+                    if (!string.IsNullOrEmpty(app)) {
+                        hwnd = FocusAppWindow(app);
+                    } else {
+                        hwnd = GetForegroundWindow();
+                    }
+
+                    int elementIndex = args.ContainsKey("element_index") ? int.Parse(args["element_index"]) : 0;
+                    string act = args.ContainsKey("action") ? args["action"].ToLower() : "invoke";
+
+                    var elements = GetInteractiveElements(hwnd);
+                    if (elementIndex >= 0 && elementIndex < elements.Count) {
+                        AutomationElement el = elements[elementIndex];
+                        bool executed = false;
+
+                        if (act == "invoke" || act == "click") {
+                            object patternObj;
+                            if (el.TryGetCurrentPattern(InvokePattern.Pattern, out patternObj)) {
+                                ((InvokePattern)patternObj).Invoke();
+                                executed = true;
+                            } else if (el.TryGetCurrentPattern(TogglePattern.Pattern, out patternObj)) {
+                                ((TogglePattern)patternObj).Toggle();
+                                executed = true;
+                            } else if (el.TryGetCurrentPattern(SelectionItemPattern.Pattern, out patternObj)) {
+                                ((SelectionItemPattern)patternObj).Select();
+                                executed = true;
+                            }
+                        } else if (act == "toggle") {
+                            object patternObj;
+                            if (el.TryGetCurrentPattern(TogglePattern.Pattern, out patternObj)) {
+                                ((TogglePattern)patternObj).Toggle();
+                                executed = true;
+                            }
+                        } else if (act == "select") {
+                            object patternObj;
+                            if (el.TryGetCurrentPattern(SelectionItemPattern.Pattern, out patternObj)) {
+                                ((SelectionItemPattern)patternObj).Select();
+                                executed = true;
+                            }
+                        } else if (act == "expand" || act == "collapse") {
+                            object patternObj;
+                            if (el.TryGetCurrentPattern(ExpandCollapsePattern.Pattern, out patternObj)) {
+                                if (act == "expand") ((ExpandCollapsePattern)patternObj).Expand();
+                                else ((ExpandCollapsePattern)patternObj).Collapse();
+                                executed = true;
+                            }
+                        }
+
+                        var r = el.Current.BoundingRectangle;
+                        int cx = (int)(r.Left + r.Width / 2);
+                        int cy = (int)(r.Top + r.Height / 2);
+                        if (!executed && !r.IsEmpty && r.Width > 0 && r.Height > 0) {
+                            NotifyOverlayPoint(cx, cy, "Clicking element " + elementIndex);
+                            SetCursorPos(cx, cy);
+                            Cursor.Position = new Point(cx, cy);
+                            Thread.Sleep(30);
+                            SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+                            executed = true;
+                        }
+
+                        return string.Format("{{\"status\":\"success\",\"action\":\"perform_accessibility_action\",\"element_index\":{0},\"executed\":{1},\"target\":[{2},{3}]}}",
+                            elementIndex, executed ? "true" : "false", cx, cy);
+                    }
+
+                    return string.Format("{{\"status\":\"error\",\"message\":\"Element index {0} out of range (found {1})\"}}", elementIndex, elements.Count);
+                }
+
+                case "set_value": {
+                    string app = args.ContainsKey("app") ? args["app"] : "";
+                    IntPtr hwnd = IntPtr.Zero;
+                    if (!string.IsNullOrEmpty(app)) {
+                        hwnd = FocusAppWindow(app);
+                    } else {
+                        hwnd = GetForegroundWindow();
+                    }
+
+                    string val = args.ContainsKey("value") ? args["value"] : "";
+                    int elementIndex = args.ContainsKey("element_index") ? int.Parse(args["element_index"]) : -1;
+
+                    bool assigned = false;
+                    if (elementIndex >= 0) {
+                        var elements = GetInteractiveElements(hwnd);
+                        if (elementIndex < elements.Count) {
+                            AutomationElement el = elements[elementIndex];
+                            object patternObj;
+                            if (el.TryGetCurrentPattern(ValuePattern.Pattern, out patternObj)) {
+                                try {
+                                    ((ValuePattern)patternObj).SetValue(val);
+                                    assigned = true;
+                                } catch {}
+                            }
+                            if (!assigned) {
+                                var r = el.Current.BoundingRectangle;
+                                if (!r.IsEmpty && r.Width > 0) {
+                                    int cx = (int)(r.Left + r.Width / 2);
+                                    int cy = (int)(r.Top + r.Height / 2);
+                                    NotifyOverlayPoint(cx, cy, "Typing into element " + elementIndex);
+                                    SetCursorPos(cx, cy);
+                                    Cursor.Position = new Point(cx, cy);
+                                    Thread.Sleep(30);
+                                    SendMouseClick(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP);
+                                    Thread.Sleep(60);
+                                    SendKeyDown(0x11); // Ctrl
+                                    SendKeyDown(0x41); // A
+                                    SendKeyUp(0x41);
+                                    SendKeyUp(0x11);
+                                    Thread.Sleep(30);
+                                    SendKeyDown(0x08); // Backspace
+                                    SendKeyUp(0x08);
+                                    Thread.Sleep(30);
+                                    SendUnicodeText(val);
+                                    assigned = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!assigned) {
+                        SendUnicodeText(val);
+                    }
+
+                    return string.Format("{{\"status\":\"success\",\"action\":\"set_value\",\"length\":{0}}}", val.Length);
+                }
+
                 case "get_app_state":
                 case "screenshot": {
                     string app = args.ContainsKey("app") ? args["app"] : "";
@@ -582,6 +956,9 @@ namespace WindowsComputerUse {
                     }
 
                     Rectangle screenBounds = Screen.PrimaryScreen.Bounds;
+                    if (hwnd != IntPtr.Zero) {
+                        try { screenBounds = Screen.FromHandle(hwnd).Bounds; } catch {}
+                    }
                     Rectangle rect = screenBounds;
                     string windowTitle = "Desktop";
 
@@ -589,10 +966,10 @@ namespace WindowsComputerUse {
                         try {
                             RECT r;
                             GetWindowRect(hwnd, out r);
-                            int rx = Math.Max(0, r.Left);
-                            int ry = Math.Max(0, r.Top);
-                            int rw = Math.Min(screenBounds.Width - rx, Math.Max(100, r.Right - rx));
-                            int rh = Math.Min(screenBounds.Height - ry, Math.Max(100, r.Bottom - ry));
+                            int rx = Math.Max(screenBounds.Left, r.Left);
+                            int ry = Math.Max(screenBounds.Top, r.Top);
+                            int rw = Math.Min(screenBounds.Right - rx, Math.Max(100, r.Right - rx));
+                            int rh = Math.Min(screenBounds.Bottom - ry, Math.Max(100, r.Bottom - ry));
                             if (rw > 100 && rh > 100) {
                                 rect = new Rectangle(rx, ry, rw, rh);
                             }
@@ -620,7 +997,7 @@ namespace WindowsComputerUse {
                         try {
                             using (Bitmap bmp = new Bitmap(screenBounds.Width, screenBounds.Height)) {
                                 using (Graphics g = Graphics.FromImage(bmp)) {
-                                    g.CopyFromScreen(0, 0, 0, 0, bmp.Size, CopyPixelOperation.SourceCopy);
+                                    g.CopyFromScreen(screenBounds.Left, screenBounds.Top, 0, 0, bmp.Size, CopyPixelOperation.SourceCopy);
                                 }
                                 using (MemoryStream ms = new MemoryStream()) {
                                     bmp.Save(ms, ImageFormat.Png);
@@ -630,8 +1007,27 @@ namespace WindowsComputerUse {
                         } catch {}
                     }
 
-                    string axTree = string.Format("[Window: \\\"{0}\\\"] [Bounds: [{1},{2},{3},{4}]]",
+                    StringBuilder axBuilder = new StringBuilder();
+                    axBuilder.AppendFormat("[Window: \\\"{0}\\\"] [Bounds: [{1},{2},{3},{4}]]",
                         JsonEscape(windowTitle), rect.Left, rect.Top, rect.Width, rect.Height);
+
+                    if (hwnd != IntPtr.Zero) {
+                        try {
+                            var elements = GetInteractiveElements(hwnd);
+                            for (int i = 0; i < elements.Count; i++) {
+                                var el = elements[i];
+                                try {
+                                    var cur = el.Current;
+                                    var elRect = cur.BoundingRectangle;
+                                    string cType = cur.ControlType != null ? cur.ControlType.ProgrammaticName.Replace("ControlType.", "") : "Control";
+                                    string name = cur.Name ?? "";
+                                    axBuilder.AppendFormat("\\n  [Index {0}] [{1}: \\\"{2}\\\"] [Bounds: [{3},{4},{5},{6}]]",
+                                        i, cType, JsonEscape(name), (int)elRect.Left, (int)elRect.Top, (int)elRect.Width, (int)elRect.Height);
+                                } catch {}
+                            }
+                        } catch {}
+                    }
+                    string axTree = axBuilder.ToString();
 
                     return string.Format(
                         "{{\"status\":\"success\",\"platform\":\"win32\",\"app\":\"{0}\",\"screenshots\":[{{\"url\":\"data:image/png;base64,{1}\"}}],\"accessibility\":{{\"tree\":\"{2}\"}}}}",

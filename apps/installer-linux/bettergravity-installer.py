@@ -61,10 +61,23 @@ class BetterGravityInstallerApp(Gtk.Application):
         spacer.set_hexpand(True)
         header.append(spacer)
 
-        ver_lbl = Gtk.Label(label="v2.0.2")
-        ver_lbl.add_css_class("version-text")
-        header.append(ver_lbl)
+        self.sync_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.sync_dot = Gtk.Label(label="●")
+        self.sync_dot.add_css_class("status-dot")
+        self.sync_lbl = Gtk.Label(label="ONLINE")
+        self.sync_lbl.add_css_class("version-text")
+        self.sync_pill.append(self.sync_dot)
+        self.sync_pill.append(self.sync_lbl)
+        header.append(self.sync_pill)
+
+        self.ver_lbl = Gtk.Label(label="v3.0.0")
+        self.ver_lbl.add_css_class("version-text")
+        header.append(self.ver_lbl)
         root.append(header)
+
+        # Launch online bootstrapper sync in background
+        import threading
+        threading.Thread(target=self.sync_bootstrapper, daemon=True).start()
 
         # Main Body
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -295,6 +308,30 @@ class BetterGravityInstallerApp(Gtk.Application):
         self.set_status("unpatched")
         self.btn_reinstall.set_sensitive(False)
         self.btn_delete.set_sensitive(False)
+
+    def update_bootstrapper_ui(self, version, status):
+        self.ver_lbl.set_text(f"v{version}")
+        self.sync_lbl.set_text(status)
+        return False
+
+    def sync_bootstrapper(self):
+        import urllib.request
+        manifest_url = "https://raw.githubusercontent.com/YashjitPal/BetterGravity/main/apps/installer-windows/Patcher/manifest.json"
+        cache_dir = os.path.expanduser("~/.local/share/BetterGravity/PatcherCache")
+        runtime_dir = os.path.join(cache_dir, "runtime")
+
+        try:
+            req = urllib.request.Request(manifest_url, headers={"User-Agent": "BetterGravity-Bootstrapper-Linux/3.0.0"})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode("utf-8"))
+                    version = data.get("version", "3.0.0")
+                    os.makedirs(runtime_dir, exist_ok=True)
+                    GLib.idle_add(self.update_bootstrapper_ui, version, "LATEST")
+                    return
+        except Exception:
+            pass
+        GLib.idle_add(self.update_bootstrapper_ui, "3.0.0", "OFFLINE")
 
 if __name__ == '__main__':
     app = BetterGravityInstallerApp()

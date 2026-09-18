@@ -533,7 +533,7 @@ function activeConversationContext() {
   const id = location.pathname.match(/\/c\/([^/]+)/)?.[1];
   const conversation = document.querySelector('[data-testid="conversation-view"]');
   // These full-page views retain /c/:id while covering the conversation.
-  if (!id || !conversation || document.body.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
+  if (!id || !conversation || document.body?.matches(".bettergravity-pets-open, .gemini-skills-open") || conversation.closest("[data-pet-page-hidden], [data-gemini-skills-hidden]")) return null;
   if (conversation.checkVisibility && !conversation.checkVisibility({ checkVisibilityCSS: true })) return null;
   return id;
 }
@@ -1593,7 +1593,20 @@ function unmount() {
 
 const conversationObserver = new MutationObserver(syncContext);
 const viewObserver = new MutationObserver(syncContext);
-viewObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+function bindViewObserver() {
+  const target = document.body || document.documentElement;
+  if (target) {
+    viewObserver.observe(target, { attributes: true, attributeFilter: ["class"] });
+  }
+}
+bindViewObserver();
+if (typeof document !== "undefined" && !document.body) {
+  document.addEventListener("DOMContentLoaded", () => {
+    viewObserver.disconnect();
+    bindViewObserver();
+    syncContext();
+  }, { once: true });
+}
 syncContext();
 plugin.dom.observe('button[data-tab-id="terminal"]', mount);
 if (plugin.browser?.available) plugin.browser.onStateChanged(next => {

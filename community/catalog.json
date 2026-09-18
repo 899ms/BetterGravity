@@ -1,7 +1,40 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-18T15:47:03.322Z",
+  "generatedAt": "2026-09-18T23:09:14.803Z",
   "entries": [
+    {
+      "id": "compact",
+      "kind": "plugin",
+      "name": "Compact",
+      "description": "Trigger conversation compaction natively in Antigravity with a dedicated /compact slash command.",
+      "version": "1.0.0",
+      "author": "Yashjit Pal",
+      "source": "https://github.com/YashjitPal/BetterGravity",
+      "path": "community/plugins/compact",
+      "bytes": 19384,
+      "files": [
+        {
+          "name": "index.js",
+          "bytes": 15939,
+          "sha256": "5294fb5dce30b3b3b9641ae9428f6f9f6e913e7cda1ef835241bc76d1f26a050"
+        },
+        {
+          "name": "plugin.json",
+          "bytes": 307,
+          "sha256": "99c7a3faad645d829997fd98fe8f173fbf82b561e5cad654defba6a97ed4ea99"
+        },
+        {
+          "name": "README.md",
+          "bytes": 1081,
+          "sha256": "599bc6dea9455b3d03bc38f49da525e47470a5ccea3193e7c7227572b4c7cea9"
+        },
+        {
+          "name": "styles/compact.css",
+          "bytes": 2057,
+          "sha256": "7c5c6fe85cf33d5ad2863723eab6fcb80bff135081f03649c8e4ea178c9ea0c1"
+        }
+      ]
+    },
     {
       "id": "computer-use",
       "kind": "plugin",
@@ -14,7 +47,7 @@
         "windows"
       ],
       "path": "community/plugins/computer-use",
-      "bytes": 947463,
+      "bytes": 986063,
       "files": [
         {
           "name": "assets/agent-cursor.png",
@@ -68,13 +101,13 @@
         },
         {
           "name": "bin/windows-native-runner.cs",
-          "bytes": 31368,
-          "sha256": "1fd991dc3b34f88950810abd5c479653b7d9998bee5c67db6cb5d1ebc3db4830"
+          "bytes": 53091,
+          "sha256": "e543670683f6e4d6fd37dd1538682be7ac2a73bb4d21cdcdf2a585398ed439eb"
         },
         {
           "name": "bin/windows-native-runner.exe",
-          "bytes": 20992,
-          "sha256": "2ee01ac82ae9fd5147a46b1d8ad7e4aad8f3e82c5f17ef6a652b25a42083beb7"
+          "bytes": 29184,
+          "sha256": "5133c10e81c30a1dc1d4c3766d24f64ad4b736e69d7de47435f2da00fa240f73"
         },
         {
           "name": "bin/windows-screen-overlay-debug.exe",
@@ -83,13 +116,13 @@
         },
         {
           "name": "bin/windows-screen-overlay.cs",
-          "bytes": 57012,
-          "sha256": "2059e9e4eed91f12441846a71f92b6aed98d4cfc043595157df7f43dccd7b547"
+          "bytes": 57315,
+          "sha256": "6f46232ddc1e9f9b345a9fdaa4ee6d5fbdbe4695cb1fa129925e69d17146a145"
         },
         {
           "name": "bin/windows-screen-overlay.exe",
           "bytes": 42496,
-          "sha256": "ba550c64571aee42b3db32e56c1875a7f8ed3da4dfc484a298b5be53544d01e8"
+          "sha256": "0fa08c7f4d2065853b312fa2295b4b21025e6bc3b4e22eadede1adff8032e20c"
         },
         {
           "name": "core/approval-manager.js",
@@ -133,8 +166,8 @@
         },
         {
           "name": "core/windows-native-runner.js",
-          "bytes": 9267,
-          "sha256": "3383175ed0f5e1414171cd31db0012cdf063058eba104b3dcde120b129997399"
+          "bytes": 11331,
+          "sha256": "34b9b74bb6afbaaa2655ad7c54150eb250e96a8ca839b1d668a0edac415c7ffa"
         },
         {
           "name": "cursor/agent-cursor.png",
@@ -153,18 +186,18 @@
         },
         {
           "name": "cursor/cursor-physics.js",
-          "bytes": 10986,
-          "sha256": "ed973cc76411cd2b0ed3242b54d361de164a2aaf41d0e3a306180b78122ea644"
+          "bytes": 11453,
+          "sha256": "ad54106230aa310c4f16f11a00dafd7ca0e3ebc22186065fa7f114cf786894b6"
         },
         {
           "name": "index.js",
-          "bytes": 36146,
-          "sha256": "f5441cb8239858b45927b63b5d6d0d403d1d1730fcf27a5b9d31ea2f53a546e7"
+          "bytes": 39210,
+          "sha256": "86ec121b74d64792e2147813aad08681a627c25c0f7c0fbee5e65e57d47de820"
         },
         {
           "name": "mcp-server.cjs",
-          "bytes": 4359,
-          "sha256": "55919cc358b0ffae191f5f984fb0c479046cccbbe4d386fee037661a7684522c"
+          "bytes": 5016,
+          "sha256": "c2c237c4c007f9e04f68d7debf563371925ad0739d67f0b48586fae27824b560"
         },
         {
           "name": "package.json",
@@ -203,13 +236,13 @@
         },
         {
           "name": "tools/index.js",
-          "bytes": 13341,
-          "sha256": "dc997e3f68fc4c19fc68aee4d6d193b5e2b9dcbdb9e0bdedba71e993ba2f3a5d"
+          "bytes": 13443,
+          "sha256": "3bceee87e77a5bf9359f649fed9490b790f30657f1cae38dc076612615c90259"
         },
         {
           "name": "tools/schemas.js",
-          "bytes": 10411,
-          "sha256": "111562c3dd2f86c7f015ef8dad9cb8e095e75d97e0d9e314ded485689c2209d8"
+          "bytes": 10871,
+          "sha256": "1104ef7f0e9ffa99e02dc262b40225046518e12f703726183622b0b480673161"
         },
         {
           "name": "tools/tool-labels.js",
@@ -218,8 +251,8 @@
         },
         {
           "name": "tools/windows-actions.js",
-          "bytes": 4458,
-          "sha256": "ee62a71df246aac669fe5ee57b0f578c53f9402eed4c54e98c9fd22a590554a0"
+          "bytes": 6026,
+          "sha256": "5066aba5ea25444384f6e17c46533653e1c0bfc4fa85ea0ba30775ea9b2758c2"
         }
       ]
     },
@@ -311,7 +344,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 949319,
+      "bytes": 949846,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -330,13 +363,13 @@
         },
         {
           "name": "index.js",
-          "bytes": 386569,
-          "sha256": "ea036c8dbb2490b6c9976bd0d765c32761bea9aff56a860e9b9647bfd60cba0e"
+          "bytes": 387379,
+          "sha256": "f10981da634ddf5f3683e113b164220286001e36d8e0f019727f1d5e594b6e66"
         },
         {
           "name": "plugin.json",
-          "bytes": 30355,
-          "sha256": "e0165f26baf862d733adea99e221f49bc434ebaf32f160c86dc46f23268005b5"
+          "bytes": 30072,
+          "sha256": "4fd8e8df4bae91d3b0c2bcb60aa8a1f9ade56bdda74e2ef08e4409b4d7259587"
         },
         {
           "name": "styles/conversation.css",
@@ -421,6 +454,59 @@
       ]
     },
     {
+      "id": "gemini-live",
+      "kind": "plugin",
+      "name": "Gemini Live",
+      "description": "Real-time voice and multimodal Gemini Live mode for Antigravity with coding agent handoff and custom model settings.",
+      "version": "0.2.0",
+      "author": "Yashjit Pal",
+      "source": "https://github.com/YashjitPal/BetterGravity",
+      "path": "community/plugins/gemini-live",
+      "bytes": 324226,
+      "files": [
+        {
+          "name": "assets/watercolor.webp",
+          "bytes": 41716,
+          "sha256": "ac60b5c330437bbf82aa76f88be84a39ad586d6a2a075e53f6cd72357c7af83f"
+        },
+        {
+          "name": "audio/live-session-cues.js",
+          "bytes": 6902,
+          "sha256": "7e50e2c57973a8b08f40a998c67a96f3af71d72edc0a9b2edf0cfc4352d3615f"
+        },
+        {
+          "name": "index.js",
+          "bytes": 172215,
+          "sha256": "05f66eb2ab999daba7eea1bd0944036a94166b817be5d8af40e0d437acde1a4e"
+        },
+        {
+          "name": "orb/shaders.js",
+          "bytes": 26305,
+          "sha256": "fa8e222e8a905bb1c5906eb3941ea60f5638ca67b08eb0f252a1898352103683"
+        },
+        {
+          "name": "orb/watercolor-data.js",
+          "bytes": 55686,
+          "sha256": "c639805fc8adf488cc090a0f4f6b376dcda626273cb3930147176b18beae5ffc"
+        },
+        {
+          "name": "plugin.json",
+          "bytes": 335,
+          "sha256": "c40e30f6c783fa33b045845f188e702b369c9676a41f3dfa6e8e0b7aca831fb3"
+        },
+        {
+          "name": "README.md",
+          "bytes": 2086,
+          "sha256": "589ef222bb2d2c5c3d1fcc82186af9c83235917dd4b25a4ddd4a0b803a6ee074"
+        },
+        {
+          "name": "styles/gemini-live.css",
+          "bytes": 18981,
+          "sha256": "5505f4ba3a691b97ecf6858aac19598a6dbdf92dc97f29a8a3d563dc5094e8ac"
+        }
+      ]
+    },
+    {
       "id": "in-built-browser",
       "kind": "plugin",
       "name": "In Built Browser",
@@ -429,12 +515,12 @@
       "author": "BetterGravity Community",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/in-built-browser",
-      "bytes": 803710,
+      "bytes": 804051,
       "files": [
         {
           "name": "index.js",
-          "bytes": 109387,
-          "sha256": "5d1d6ac33143b2462402663cc1afcc04a2f62b2847b8300b24b488148290c800"
+          "bytes": 109728,
+          "sha256": "7177c60dec0136c5f88fe74db982e6c912dfab57daa27d84a94e4bf85001d4f1"
         },
         {
           "name": "mcp-server.cjs",

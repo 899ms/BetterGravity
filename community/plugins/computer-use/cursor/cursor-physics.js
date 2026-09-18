@@ -187,7 +187,22 @@ export class AgentCursor {
     offsetWrapper.appendChild(img);
     cursor.appendChild(offsetWrapper);
     layer.appendChild(cursor);
-    this.container.appendChild(layer);
+    if (this.container) {
+      this.container.appendChild(layer);
+    } else if (typeof document !== "undefined") {
+      const attach = () => {
+        const target = document.body || document.documentElement;
+        if (target) {
+          this.container = target;
+          target.appendChild(layer);
+        }
+      };
+      if (document.body || document.documentElement) {
+        attach();
+      } else {
+        document.addEventListener("DOMContentLoaded", attach, { once: true });
+      }
+    }
 
     return { layer, cursor, img, offsetWrapper };
   }

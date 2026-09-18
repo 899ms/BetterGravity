@@ -239,7 +239,22 @@ class AgentCursor {
     offsetWrapper.appendChild(img);
     cursor.appendChild(offsetWrapper);
     layer.appendChild(cursor);
-    this.container.appendChild(layer);
+    if (this.container) {
+      this.container.appendChild(layer);
+    } else if (typeof document !== "undefined") {
+      const attach = () => {
+        const target = document.body || document.documentElement;
+        if (target) {
+          this.container = target;
+          target.appendChild(layer);
+        }
+      };
+      if (document.body || document.documentElement) {
+        attach();
+      } else {
+        document.addEventListener("DOMContentLoaded", attach, { once: true });
+      }
+    }
 
     return { layer, cursor, img, offsetWrapper };
   }
@@ -748,7 +763,14 @@ function ensureActivityBadge() {
     activityElement = document.createElement("div");
     activityElement.className = "cu-activity-container cu-floating-activity cu-surface";
     activityElement.style.display = "none";
-    document.body.appendChild(activityElement);
+    const target = (typeof document !== "undefined" && (document.body || document.documentElement)) || null;
+    if (target) {
+      target.appendChild(activityElement);
+    } else if (typeof document !== "undefined") {
+      document.addEventListener("DOMContentLoaded", () => {
+        (document.body || document.documentElement)?.appendChild(activityElement);
+      }, { once: true });
+    }
   }
   return activityElement;
 }
@@ -820,7 +842,14 @@ function cleanupStuckDomCursors() {
 function setupAgentCursor() {
   cleanupStuckDomCursors();
   if (cursorInstance) return;
-  cursorInstance = new AgentCursor(document.body, {
+  const target = (typeof document !== "undefined" && (document.body || document.documentElement)) || null;
+  if (!target) {
+    if (typeof window !== "undefined") {
+      window.addEventListener("DOMContentLoaded", () => setupAgentCursor(), { once: true });
+    }
+    return;
+  }
+  cursorInstance = new AgentCursor(target, {
     glowColor: "var(--color-accent-blue, #007aff)"
   });
 }
@@ -937,6 +966,10 @@ function handleBridgeEvent(event) {
         });
       }
     }
+
+    // Activate turn tracking and watch for response generation completion
+    activeComputerUseTurn = true;
+    startResponseGenerationWatcher();
   } else if (type === "tool_complete") {
     const effectiveArgs = (args && Object.keys(args).length > 0) ? args : (lastActiveArgsByTool.get(toolName) || {});
     lastActiveArgsByTool.delete(toolName);
@@ -947,6 +980,63 @@ function handleBridgeEvent(event) {
     if (cursorInstance) {
       cursorInstance.setState({ cursor: null, isVisible: false });
     }
+  } else if (type === "turn_complete") {
+    activeComputerUseTurn = false;
+    currentAction = null;
+    updateActivityBadge({ label: "Ready", isRunning: false });
+    if (cursorInstance) {
+      cursorInstance.setState({ cursor: null, isVisible: false });
+    }
+  }
+}
+
+let activeComputerUseTurn = false;
+let generationCheckInterval = null;
+
+function isAntigravityGenerating() {
+  const cancelBtn = document.querySelector('[data-tooltip-id="input-send-button-cancel-tooltip"], button[aria-label*="Cancel (Ctrl+D)"], button[aria-label*="Cancel"]');
+  return !!cancelBtn;
+}
+
+function startResponseGenerationWatcher() {
+  if (generationCheckInterval) return;
+
+  let sawGenerating = isAntigravityGenerating();
+  let checks = 0;
+
+  generationCheckInterval = setInterval(() => {
+    if (!activeComputerUseTurn) {
+      clearInterval(generationCheckInterval);
+      generationCheckInterval = null;
+      return;
+    }
+
+    checks++;
+    const generating = isAntigravityGenerating();
+    if (generating) {
+      sawGenerating = true;
+    } else if (sawGenerating || checks > 12) {
+      // Entire response generation finished: automatically release all animations and OS input
+      endComputerUseTurn();
+    }
+  }, 120);
+}
+
+function endComputerUseTurn() {
+  activeComputerUseTurn = false;
+  if (generationCheckInterval) {
+    clearInterval(generationCheckInterval);
+    generationCheckInterval = null;
+  }
+
+  fetch(`http://127.0.0.1:${BRIDGE_PORT}/event`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "turn_complete", timestamp: Date.now() })
+  }).catch(() => {});
+
+  if (cursorInstance) {
+    cursorInstance.setState({ cursor: null, isVisible: false });
   }
 }
 
@@ -1007,6 +1097,10 @@ plugin.onDispose(() => {
     eventSource = null;
   }
   clearInterval(pollInterval);
+  if (generationCheckInterval) {
+    clearInterval(generationCheckInterval);
+    generationCheckInterval = null;
+  }
   if (audioContext) {
     try { audioContext.close(); } catch {}
     audioContext = null;

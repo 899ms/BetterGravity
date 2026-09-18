@@ -30,6 +30,16 @@ const isTopFrame = (() => {
   }
 })();
 
+const isLoopbackHost = (() => {
+  try {
+    const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost" || location.hostname === "[::1]";
+    const isHttp = location.protocol === "https:" || location.protocol === "http:";
+    return isLocal && isHttp;
+  } catch {
+    return false;
+  }
+})();
+
 /**
  * One preload is registered for the whole session, so this same file is what the
  * overlay window loads. The marker on its argv is how the two are told apart:
@@ -161,7 +171,7 @@ async function applyThemesWhenReady(): Promise<void> {
 
 if (isOverlayWindow) {
   attachOverlaySurface();
-} else if (isTopFrame) {
+} else if (isTopFrame && isLoopbackHost) {
   try {
     contextBridge.exposeInMainWorld(BRIDGE_GLOBAL, bridge);
   } catch (error) {

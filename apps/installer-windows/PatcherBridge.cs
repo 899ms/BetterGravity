@@ -272,6 +272,9 @@ public static class PatcherBridge
 
     private static string GetPatcherScriptPath()
     {
+        var activeFromBootstrapper = BootstrapperService.GetActivePatcherScriptPath();
+        if (!string.IsNullOrEmpty(activeFromBootstrapper)) return activeFromBootstrapper;
+
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var inPatcher = System.IO.Path.Combine(baseDir, "Patcher", "patcher-cli.cjs");
         if (File.Exists(inPatcher)) return inPatcher;
@@ -294,6 +297,9 @@ public static class PatcherBridge
 
     private static string GetRuntimeSourcePath()
     {
+        var activeRuntimeFromBootstrapper = BootstrapperService.GetActiveRuntimeDirectory();
+        if (!string.IsNullOrEmpty(activeRuntimeFromBootstrapper)) return activeRuntimeFromBootstrapper;
+
         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
         var inPatcher = System.IO.Path.Combine(baseDir, "Patcher", "runtime");
         if (Directory.Exists(inPatcher) && File.Exists(System.IO.Path.Combine(inPatcher, "main.cjs"))) return inPatcher;
@@ -506,6 +512,8 @@ public static class PatcherBridge
     {
         try
         {
+            await BootstrapperService.EnsureSyncedAsync();
+
             var script = GetPatcherScriptPath();
             var runtimeSource = GetRuntimeSourcePath();
             var psi = CreateNodeStartInfo($"\"{script}\" run {operation} \"{installationPath}\" \"{runtimeSource}\"", installationPath);

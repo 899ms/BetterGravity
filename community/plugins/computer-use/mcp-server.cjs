@@ -1,9 +1,22 @@
 #!/usr/bin/env node
 const http = require('node:http');
+const net = require('node:net');
 const readline = require('node:readline');
 const path = require('node:path');
 
 let registryInstance = null;
+let doneDebounceTimer = null;
+
+function sendOverlayDone() {
+  try {
+    const s = net.createConnection({ port: 51830, host: '127.0.0.1' }, () => {
+      s.write(JSON.stringify({ action: 'done' }) + '\n');
+      s.end();
+    });
+    s.on('error', () => {});
+    s.setTimeout(250, () => s.destroy());
+  } catch {}
+}
 
 async function getRegistry() {
   if (!registryInstance) {
@@ -52,6 +65,10 @@ try {
       req.on('end', () => {
         try {
           const ev = JSON.parse(body);
+          if (ev.type === 'turn_complete' || ev.action === 'done') {
+            clearTimeout(doneDebounceTimer);
+            sendOverlayDone();
+          }
           broadcastEvent(ev);
         } catch {}
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -125,6 +142,7 @@ async function handleMessage(message) {
     const args = params?.arguments || {};
     const reg = await getRegistry();
 
+    clearTimeout(doneDebounceTimer);
     notifyBridge('tool_start', { toolName, args });
 
     try {
@@ -152,6 +170,9 @@ async function handleMessage(message) {
           message: err.message,
         },
       });
+    } finally {
+      clearTimeout(doneDebounceTimer);
+      doneDebounceTimer = setTimeout(sendOverlayDone, 3800);
     }
     return;
   }

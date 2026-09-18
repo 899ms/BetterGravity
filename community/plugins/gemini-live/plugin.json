@@ -1,0 +1,9 @@
+{
+  "name": "Gemini Live",
+  "description": "Real-time voice and multimodal Gemini Live mode for Antigravity with coding agent handoff and custom model settings.",
+  "version": "0.2.0",
+  "author": "Yashjit Pal",
+  "main": "index.js",
+  "styles": ["styles/gemini-live.css"],
+  "source": "https://github.com/YashjitPal/BetterGravity"
+}

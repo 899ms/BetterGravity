@@ -1,0 +1,9 @@
+{
+  "name": "Compact",
+  "description": "Trigger conversation compaction natively in Antigravity with a dedicated /compact slash command.",
+  "version": "1.0.0",
+  "author": "Yashjit Pal",
+  "main": "index.js",
+  "styles": ["styles/compact.css"],
+  "source": "https://github.com/YashjitPal/BetterGravity"
+}

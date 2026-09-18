@@ -136,7 +136,6 @@ export class WindowsNativeRunner {
   constructor() {
     this.binPath = BIN_PATH;
     this.ensureBinary();
-    ensureOverlay();
   }
 
   ensureBinary() {
@@ -146,8 +145,12 @@ export class WindowsNativeRunner {
         execFileSync(CSC_COMPILER, [
           "/nologo",
           "/optimize+",
+          "/lib:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF",
           "/r:System.Drawing.dll",
           "/r:System.Windows.Forms.dll",
+          "/r:UIAutomationClient.dll",
+          "/r:UIAutomationTypes.dll",
+          "/r:WindowsBase.dll",
           `/out:${this.binPath}`,
           CS_PATH,
         ], { windowsHide: true });
@@ -208,21 +211,28 @@ export class WindowsNativeRunner {
     return await this.runCommand("focus", { app });
   }
 
-  async click({ target, mouse_button = "left", click_count = 1, app }) {
+  async click({ target, mouse_button = "left", click_count = 1, app, element_index }) {
     checkAndClearInterrupt();
-    const x = Array.isArray(target) ? target[0] : 100;
-    const y = Array.isArray(target) ? target[1] : 100;
     const appStr = (app && typeof app === "object") ? app.name || app.displayName || "" : String(app || "");
-    await notifyOverlay(x, y, STATUS_TEXT);
-    await new Promise((r) => setTimeout(r, 450));
+    const args = {
+      button: mouse_button,
+      count: click_count,
+      app: appStr,
+    };
+    if (element_index !== undefined && element_index !== null) {
+      args.element_index = element_index;
+      await notifyOverlay(null, null, STATUS_TEXT);
+      await new Promise((r) => setTimeout(r, 200));
+    } else {
+      const x = Array.isArray(target) ? target[0] : 100;
+      const y = Array.isArray(target) ? target[1] : 100;
+      args.x = x;
+      args.y = y;
+      await notifyOverlay(x, y, STATUS_TEXT);
+      await new Promise((r) => setTimeout(r, 450));
+    }
     try {
-      const res = await this.runCommand("click", {
-        x,
-        y,
-        button: mouse_button,
-        count: click_count,
-        app: appStr,
-      });
+      const res = await this.runCommand("click", args);
       await new Promise((r) => setTimeout(r, 80));
       return res;
     } finally {
@@ -256,31 +266,43 @@ export class WindowsNativeRunner {
     }
   }
 
-  async scroll({ target, direction = "down", pages = 1, app }) {
+  async scroll({ target, direction = "down", pages = 1, app, element_index }) {
     checkAndClearInterrupt();
-    const x = Array.isArray(target) ? target[0] : 0;
-    const y = Array.isArray(target) ? target[1] : 0;
     const appStr = (app && typeof app === "object") ? app.name || app.displayName || "" : String(app || "");
-    await notifyOverlay(x, y, STATUS_TEXT);
-    await new Promise((r) => setTimeout(r, 140));
+    const args = {
+      direction,
+      pages,
+      app: appStr,
+    };
+    if (element_index !== undefined && element_index !== null) {
+      args.element_index = element_index;
+      await notifyOverlay(null, null, STATUS_TEXT);
+      await new Promise((r) => setTimeout(r, 100));
+    } else if (Array.isArray(target) && target.length >= 2) {
+      args.x = target[0];
+      args.y = target[1];
+      await notifyOverlay(target[0], target[1], STATUS_TEXT);
+      await new Promise((r) => setTimeout(r, 140));
+    } else {
+      await notifyOverlay(null, null, STATUS_TEXT);
+      await new Promise((r) => setTimeout(r, 100));
+    }
     try {
-      return await this.runCommand("scroll", {
-        x,
-        y,
-        direction,
-        pages,
-        app: appStr,
-      });
+      return await this.runCommand("scroll", args);
     } finally {
       notifyOverlayIdle();
     }
   }
 
-  async typeText({ text, target, app }) {
+  async typeText({ text, target, app, element_index }) {
     checkAndClearInterrupt();
     const appStr = (app && typeof app === "object") ? app.name || app.displayName || "" : String(app || "");
     const args = { text, app: appStr };
-    if (Array.isArray(target) && target.length >= 2) {
+    if (element_index !== undefined && element_index !== null) {
+      args.element_index = element_index;
+      await notifyOverlay(null, null, STATUS_TEXT);
+      await new Promise((r) => setTimeout(r, 180));
+    } else if (Array.isArray(target) && target.length >= 2) {
       args.x = target[0];
       args.y = target[1];
       await notifyOverlay(target[0], target[1], STATUS_TEXT);
@@ -305,6 +327,38 @@ export class WindowsNativeRunner {
     try {
       return await this.runCommand("press_key", {
         key,
+        app: appStr,
+      });
+    } finally {
+      notifyOverlayIdle();
+    }
+  }
+
+  async performAccessibilityAction({ element_index, action, app }) {
+    checkAndClearInterrupt();
+    const appStr = (app && typeof app === "object") ? app.name || app.displayName || "" : String(app || "");
+    await notifyOverlay(null, null, STATUS_TEXT);
+    await new Promise((r) => setTimeout(r, 150));
+    try {
+      return await this.runCommand("perform_accessibility_action", {
+        element_index,
+        action: action || "invoke",
+        app: appStr,
+      });
+    } finally {
+      notifyOverlayIdle();
+    }
+  }
+
+  async setValue({ element_index, value, app }) {
+    checkAndClearInterrupt();
+    const appStr = (app && typeof app === "object") ? app.name || app.displayName || "" : String(app || "");
+    await notifyOverlay(null, null, STATUS_TEXT);
+    await new Promise((r) => setTimeout(r, 150));
+    try {
+      return await this.runCommand("set_value", {
+        element_index,
+        value: value ?? "",
         app: appStr,
       });
     } finally {

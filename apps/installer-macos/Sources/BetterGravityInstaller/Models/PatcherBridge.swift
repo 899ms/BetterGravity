@@ -18,10 +18,38 @@ class InstallerModel: ObservableObject {
     @Published var isBusy: Bool = false
     @Published var progress: OperationProgress? = nil
     @Published var alertMessage: String? = nil
+    @Published var activeVersion: String = "v3.0.0"
+    @Published var syncState: String = "ONLINE"
 
     init() {
         Task {
             await detectAndInspect()
+            await syncBootstrapper()
+        }
+    }
+
+    func syncBootstrapper() async {
+        syncState = "SYNCING"
+        guard let url = URL(string: "https://raw.githubusercontent.com/YashjitPal/BetterGravity/main/apps/installer-windows/Patcher/manifest.json") else {
+            syncState = "OFFLINE"
+            return
+        }
+
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 5
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode == 200,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let ver = json["version"] as? String {
+                self.activeVersion = "v\(ver)"
+                self.syncState = "LATEST"
+            } else {
+                self.syncState = "OFFLINE"
+            }
+        } catch {
+            self.syncState = "OFFLINE"
         }
     }
 

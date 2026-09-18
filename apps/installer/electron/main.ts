@@ -8,10 +8,52 @@ import { INSTALLER_CHANNEL } from "./ipc.js";
 // packaged app and a local `start:desktop` behave identically.
 const devServerUrl = process.env["BG_DEV_SERVER_URL"];
 
+import fs from "node:fs";
+import { createHash } from "node:crypto";
+
 // The runtime bundles sit next to the compiled main process. In a packaged
 // build they are unpacked out of app.asar, because the patcher reads through
 // original-fs and cannot see inside an archive.
-const runtimeSource = path.join(unpackedPath(__dirname), "runtime");
+function resolveRuntimeSource(): string {
+  try {
+    const cached = path.join(app.getPath("appData"), "BetterGravity", "PatcherCache", "runtime");
+    if (fs.existsSync(path.join(cached, "main.cjs")) && fs.existsSync(path.join(cached, "preload.cjs"))) {
+      return cached;
+    }
+  } catch {}
+  return path.join(unpackedPath(__dirname), "runtime");
+}
+
+async function syncBootstrapper(): Promise<void> {
+  const manifestUrl = "https://raw.githubusercontent.com/YashjitPal/BetterGravity/main/apps/installer-windows/Patcher/manifest.json";
+  const rawBase = "https://raw.githubusercontent.com/YashjitPal/BetterGravity/main/";
+  const cacheDir = path.join(app.getPath("appData"), "BetterGravity", "PatcherCache");
+  const runtimeDir = path.join(cacheDir, "runtime");
+
+  try {
+    const res = await fetch(manifestUrl, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return;
+    const manifest = (await res.json()) as { version?: string; files?: Record<string, { path: string; sha256: string }> };
+    if (!manifest?.files) return;
+
+    fs.mkdirSync(runtimeDir, { recursive: true });
+    for (const [fileKey, fileInfo] of Object.entries(manifest.files)) {
+      const target = fileKey.startsWith("runtime/")
+        ? path.join(runtimeDir, path.basename(fileKey))
+        : path.join(cacheDir, path.basename(fileKey));
+
+      const fileRes = await fetch(rawBase + fileInfo.path, { signal: AbortSignal.timeout(10000) });
+      if (!fileRes.ok) continue;
+      const buf = Buffer.from(await fileRes.arrayBuffer());
+      const hash = createHash("sha256").update(buf).digest("hex");
+      if (hash.toLowerCase() === fileInfo.sha256.toLowerCase()) {
+        fs.writeFileSync(target, buf);
+      }
+    }
+  } catch {
+    // Offline fallback
+  }
+}
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -61,7 +103,7 @@ ipcMain.handle(INSTALLER_CHANNEL.inspectInstallation, (_event, installationPath:
 ipcMain.handle(INSTALLER_CHANNEL.runOperation, (event, operation: InstallOperation, installationPath: string) => {
   const onProgress = (progress: OperationProgress) => event.sender.send(INSTALLER_CHANNEL.progress, progress);
   if (operation === "uninstall") return uninstall(installationPath, onProgress);
-  return runOperation(operation, installationPath, { runtimeSource }, onProgress);
+  return runOperation(operation, installationPath, { runtimeSource: resolveRuntimeSource() }, onProgress);
 });
 
 // The runtime writes its log beside the user's content, not into the
@@ -73,6 +115,7 @@ ipcMain.handle(INSTALLER_CHANNEL.openLogs, () =>
 ipcMain.on(INSTALLER_CHANNEL.close, () => app.quit());
 
 void app.whenReady().then(() => {
+  void syncBootstrapper();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

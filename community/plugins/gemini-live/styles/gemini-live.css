@@ -1,0 +1,585 @@
+/* Gemini Live Plugin Styles — Willow Code Parity */
+
+/* ── 1. The Live Voice Disc in Composer ───────────────────────────────────────
+ * Sits in the exact position of the send button with Willow / Gemini styling. */
+.gemini-live-button {
+  grid-area: send !important;
+  margin-bottom: 4px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--gemini-send-bg, #1b3f95) !important;
+  color: #ffffff !important;
+  box-shadow: var(--gemini-control-shadow, 0 1px 2px 0 rgba(0, 0, 0, 0.05)) !important;
+  cursor: pointer !important;
+  border: none !important;
+  outline: none !important;
+  transition: background-color 200ms ease, transform 150ms ease, box-shadow 200ms ease, opacity 150ms ease !important;
+  position: relative !important;
+  z-index: 5 !important;
+}
+
+.gemini-live-button:hover {
+  background: var(--gemini-send-bg-hover, #153277) !important;
+}
+
+.gemini-live-button:active {
+  transform: scale(0.92) !important;
+}
+
+.gemini-live-button[data-live-active="true"] {
+  background: linear-gradient(135deg, #1b3f95, #3b82f6) !important;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.5) !important;
+  animation: gemini-live-glow 2s infinite ease-in-out !important;
+}
+
+.gemini-live-button svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #ffffff !important;
+  fill: currentColor !important;
+  transition: transform 200ms ease !important;
+}
+
+.gemini-live-button:hover svg {
+  transform: scale(1.06) !important;
+}
+
+/* ── Ongoing Live Stop Button in Send Slot ─────────────────────────────────── */
+.gemini-live-button[data-ongoing="true"] {
+  background: #171717 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.gemini-live-button[data-ongoing="true"]:hover {
+  background: #282828 !important;
+}
+
+.gemini-live-button[data-ongoing="true"] svg {
+  width: 14px !important;
+  height: 14px !important;
+  fill: currentColor !important;
+}
+
+/* ── Live Mic Button Mute Toggle in Composer ───────────────────────────────── */
+button[data-live-mic-mute="true"] {
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms ease !important;
+  position: relative !important;
+}
+
+button[data-live-mic-mute="true"][data-muted="true"] {
+  background-color: #ff002a !important;
+  color: #ffffff !important;
+}
+
+button[data-live-mic-mute="true"][data-muted="true"]:hover {
+  background-color: #fa423e !important;
+  color: #cdcdcd !important;
+}
+
+button[data-live-mic-mute="true"][data-muted="true"]:active {
+  background-color: #ba2623 !important;
+}
+
+.gemini-mic-muted-slash {
+  position: absolute !important;
+  inset: 0 !important;
+  margin: auto !important;
+  pointer-events: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.gemini-mic-muted-slash svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke: currentColor !important;
+}
+
+/* ── Titlebar Three-Dot Icon as Voice Changer Menu ─────────────────────────── */
+[data-testid="titlebar-more-actions"][data-live-voice-changer="true"] {
+  color: #a8c7fa !important;
+  cursor: pointer !important;
+}
+
+[data-testid="titlebar-more-actions"][data-live-voice-changer="true"]:hover {
+  background-color: rgba(168, 199, 250, 0.12) !important;
+}
+
+
+/* ── 2. Visibility & Swapping Logic ───────────────────────────────────────────
+ * When input has text (send-button is not disabled), or an agent is running
+ * (cancel-button is present), the Live button is hidden immediately. */
+[data-testid="agent-input-box"]:has([data-testid="send-button"]:not(:disabled)) .gemini-live-button,
+[data-testid="agent-input-box"]:has([data-tooltip-id="input-send-button-cancel-tooltip"]) .gemini-live-button,
+.gemini-live-button[data-hidden="true"] {
+  display: none !important;
+}
+
+/* Ensure disabled send button does not collide with the Live button when empty. */
+[data-testid="agent-input-box"] [data-testid="send-button"]:disabled {
+  display: none !important;
+}
+
+/* ── 3. Grid Alignment under Gemini App ───────────────────────────────────────
+ * Retain the 5-column grid layout so the Live disc occupies the send slot. */
+[data-testid="agent-input-box"]:has(.gemini-live-button:not([data-hidden="true"])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+  grid-template-columns: 32px minmax(0, 1fr) auto 32px 32px !important;
+  grid-template-areas: "plus text pill mic send" !important;
+}
+
+[data-testid="agent-input-box"][data-expanded="true"]:has(.gemini-live-button:not([data-hidden="true"])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+[data-testid="agent-input-box"]:has([data-testid="input-attachment"]):has(.gemini-live-button:not([data-hidden="true"])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]),
+[data-testid="agent-input-box"]:has(.border-b):has(.gemini-live-button:not([data-hidden="true"])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+  grid-template-columns: 32px minmax(0, 1fr) auto 32px 32px !important;
+  grid-template-areas:
+    "text text text text text"
+    "plus . pill mic send" !important;
+}
+
+[data-testid="agent-input-box"]:has([data-gemini-tool-chip]):has(.gemini-live-button:not([data-hidden="true"])) > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]) {
+  grid-template-columns: 32px auto minmax(0, 1fr) auto 32px 32px !important;
+  grid-template-areas:
+    "text text text text text text"
+    "plus chip . pill mic send" !important;
+}
+
+/* ── 4. Verbatim Willow Code: voice-focus-surface.css ─────────────────────────
+ * Transcript fade for voice focus mode.
+ * [data-voice-floating-orb-focus-surface] with exact timing and offset. */
+[data-voice-floating-orb-focus-surface] {
+  transform-origin: center top !important;
+  transition:
+    opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.36s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+[data-voice-floating-orb-focus-surface][data-voice-floating-orb-focus-surface-state='expanded'] {
+  opacity: 0 !important;
+  transform: translateY(-56px) !important;
+}
+
+[data-voice-floating-orb-focus-surface][data-voice-floating-orb-focus-surface-state='floating'] {
+  opacity: 1 !important;
+}
+
+[data-voice-focus-mode] {
+  overflow-y: hidden !important;
+}
+
+/* Safe Antigravity Viewport Integration: Fades conversation history scroller
+ * during Expanded Focus Mode without breaking flexbox column layout. */
+[data-testid="conversation-view"]:has([data-voice-floating-orb-focus-surface-state="expanded"]) > div.relative.w-full.flex-grow {
+  opacity: 0.08 !important;
+  transform: translateY(-56px) !important;
+  pointer-events: none !important;
+  transition:
+    opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.36s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* ── 5. Willow Voice Focus Surface Host ──────────────────────────────────────── */
+.gemini-live-focus-surface {
+  pointer-events: none !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 49 !important;
+  transition: background-color 0.36s cubic-bezier(0.22, 1, 0.36, 1), backdrop-filter 0.36s ease !important;
+}
+
+.gemini-live-focus-surface[data-voice-floating-orb-focus-surface-state="expanded"] {
+  background: radial-gradient(circle at 50% 45%, rgba(20, 24, 45, 0.45) 0%, rgba(13, 14, 18, 0.85) 60%, rgba(10, 10, 12, 0.95) 100%) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.gemini-live-focus-surface[data-voice-floating-orb-focus-surface-state="floating"] {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ── 6. Authentic WebGL2 Horizon Canvas Container & Positioned Wrapper ───────── */
+.gemini-live-orb-wrapper {
+  position: fixed !important;
+  pointer-events: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 224px !important;
+  will-change: top, left !important;
+  transition:
+    top 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.36s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.gemini-live-orb-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+  gap: 16px !important;
+}
+
+.gemini-live-orb-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  width: 224px !important;
+  height: 224px !important;
+  transition: transform 300ms ease-out !important;
+}
+
+.gemini-live-orb-btn:hover {
+  transform: scale(1.02) !important;
+}
+
+.gemini-live-orb-btn:active {
+  transform: scale(0.99) !important;
+}
+
+/* The WebGL2 canvas: stays at 224px; shader's uSurfaceScale springs down in floating mode */
+.gemini-live-orb-canvas {
+  width: 224px !important;
+  height: 224px !important;
+  display: block !important;
+  pointer-events: none !important;
+  border-radius: 50% !important;
+}
+
+/* ── 7. Transcript & Status Subtitle ────────────────────────────────────────── */
+.gemini-live-transcript-box {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 8px !important;
+  max-width: 600px !important;
+  padding: 0 20px !important;
+  pointer-events: auto !important;
+}
+
+.gemini-live-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 9999px !important;
+  padding: 4px 12px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  color: #93c5fd !important;
+  text-transform: uppercase !important;
+}
+
+.gemini-live-status-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #38bdf8 !important;
+  box-shadow: 0 0 6px #38bdf8 !important;
+}
+
+.gemini-live-transcript-text {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: #f1f3f4 !important;
+  font-weight: 400 !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+  min-height: 22px !important;
+  max-height: 68px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+.gemini-live-focus-surface[data-voice-floating-orb-focus-surface-state="floating"] .gemini-live-transcript-text,
+.gemini-live-focus-surface[data-voice-floating-orb-focus-surface-state="floating"] .gemini-live-status-pill {
+  display: none !important;
+}
+
+/* ── 8. Controls Dock Eliminated (Willow Code Parity: No Floating Dock) ───────── */
+.gemini-live-dock {
+  display: none !important;
+}
+
+
+/* ── 9. Top-Right Sliders Button (Willow VoiceSettingsButton.tsx) ─────────────── */
+.gemini-live-settings-trigger {
+  display: none !important;
+}
+
+/* ── 10. Verbatim Willow Code: voice-settings.css ────────────────────────────── */
+.willow-vs-shadow-long {
+  box-shadow:
+    0 8px 16px 0 rgba(0, 0, 0, 0.32),
+    inset 0 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 1px 0 rgba(0, 0, 0, 0.62) !important;
+}
+
+.willow-vs-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 6px 32px 6px 10px !important;
+  margin-inline: 6px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 400 !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+  transition: all 0s !important;
+}
+
+.willow-vs-menu-item:hover,
+.willow-vs-menu-item[data-highlighted] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.willow-vs-menu-item > .willow-vs-menu-item-trailing {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Modal Scrim & Card matching Willow VoiceSettingsDialog.tsx */
+.gemini-live-modal-scrim {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 60 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(1px) !important;
+  -webkit-backdrop-filter: blur(1px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  animation: gemini-modal-fade-in 220ms ease-out !important;
+}
+
+.gemini-live-modal-card {
+  width: 512px !important;
+  max-width: calc(100vw - 32px) !important;
+  background: #212121 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 8px 16px 0 rgba(0, 0, 0, 0.32),
+    inset 0 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 1px 0 rgba(0, 0, 0, 0.62) !important;
+  padding: 32px 32px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 20px !important;
+  color: #ffffff !important;
+  animation: gemini-modal-scale-in 220ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.gemini-live-modal-header {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.gemini-live-modal-title {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+}
+
+.gemini-live-modal-close {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #cccccc !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.gemini-live-modal-close:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+}
+
+.gemini-live-carousel {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding: 14px 18px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.gemini-live-carousel-nav {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease !important;
+}
+
+.gemini-live-carousel-nav:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.gemini-live-voice-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.gemini-live-voice-name {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+}
+
+.gemini-live-voice-desc {
+  font-size: 12px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.gemini-live-dots {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-top: 4px !important;
+}
+
+.gemini-live-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  transition: background-color 200ms ease, transform 200ms ease !important;
+}
+
+.gemini-live-dot[data-active="true"] {
+  background: #38bdf8 !important;
+  transform: scale(1.3) !important;
+}
+
+.gemini-live-field {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.gemini-live-field-label {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.gemini-live-select {
+  width: 100% !important;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+.gemini-live-select option {
+  background: #212121 !important;
+  color: #ffffff !important;
+}
+
+.gemini-live-btn-primary {
+  width: 100% !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: background-color 150ms ease !important;
+}
+
+.gemini-live-btn-primary:hover {
+  background: #2563eb !important;
+}
+
+/* Fallback / backward-compatibility aliases */
+.gemini-live-orb {
+  width: 100% !important;
+  height: 100% !important;
+}
+.gemini-live-bar {
+  display: none !important;
+}
+
+/* ── 11. Keyframe Animations ─────────────────────────────────────────────────── */
+@keyframes gemini-live-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(59, 130, 246, 0.8);
+  }
+}
+
+@keyframes gemini-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gemini-modal-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

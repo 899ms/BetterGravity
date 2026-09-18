@@ -9,6 +9,27 @@ import { WindowsIconExtractor } from "../core/windows-icon-extractor.js";
 import { WindowsNativeRunner } from "../core/windows-native-runner.js";
 import { extractAppName } from "./tool-labels.js";
 
+export function extractTargetCoords(args = {}) {
+  const t = args.target ?? args.coordinates ?? args.point ?? args.coord;
+  if (Array.isArray(t) && t.length >= 2) {
+    return [Number(t[0]), Number(t[1])];
+  }
+  if (t && typeof t === "object" && t.x !== undefined && t.y !== undefined) {
+    return [Number(t.x), Number(t.y)];
+  }
+  if (args.x !== undefined && args.y !== undefined) {
+    return [Number(args.x), Number(args.y)];
+  }
+  return null;
+}
+
+export function extractElementIndex(args = {}) {
+  if (typeof args.element_index === "number") return args.element_index;
+  if (typeof args.target === "number") return args.target;
+  if (typeof args.index === "number") return args.index;
+  return undefined;
+}
+
 export class WindowsComputerUseActionHandler {
   constructor({ helperTransport = null, captureBridge = null, nativeRunner = null } = {}) {
     this.nativeRunner = nativeRunner || new WindowsNativeRunner();
@@ -23,35 +44,45 @@ export class WindowsComputerUseActionHandler {
   /**
    * 1. Click (Windows SendInput / mouse_event click)
    */
-  async click({ target, mouse_button = "left", click_count = 1, app }) {
-    const coords = Array.isArray(target) ? target : [100, 100];
-    this.mousePosition.x = coords[0];
-    this.mousePosition.y = coords[1];
+  async click(args = {}) {
+    const { mouse_button = "left", click_count = 1, app } = args;
+    const coords = extractTargetCoords(args);
+    const elementIndex = extractElementIndex(args);
+
+    if (coords) {
+      this.mousePosition.x = coords[0];
+      this.mousePosition.y = coords[1];
+    }
 
     return await this.nativeRunner.click({
       target: coords,
+      element_index: elementIndex,
       mouse_button,
       click_count,
       app: extractAppName({ app }),
     });
   }
 
-  async doubleClick({ target, app }) {
-    return await this.click({ target, mouse_button: "left", click_count: 2, app });
+  async doubleClick(args = {}) {
+    return await this.click({ ...args, mouse_button: "left", click_count: 2 });
   }
 
-  async rightClick({ target, app }) {
-    return await this.click({ target, mouse_button: "right", click_count: 1, app });
+  async rightClick(args = {}) {
+    return await this.click({ ...args, mouse_button: "right", click_count: 1 });
   }
 
-  async middleClick({ target, app }) {
-    return await this.click({ target, mouse_button: "middle", click_count: 1, app });
+  async middleClick(args = {}) {
+    return await this.click({ ...args, mouse_button: "middle", click_count: 1 });
   }
 
   /**
    * 2. Drag (Windows mouse drag)
    */
-  async drag({ from, to, app }) {
+  async drag(args = {}) {
+    const { app } = args;
+    const from = extractTargetCoords({ target: args.from }) || (Array.isArray(args.from) ? args.from : [0, 0]);
+    const to = extractTargetCoords({ target: args.to }) || (Array.isArray(args.to) ? args.to : from);
+
     this.mousePosition.x = to[0];
     this.mousePosition.y = to[1];
 
@@ -65,9 +96,14 @@ export class WindowsComputerUseActionHandler {
   /**
    * 3. Scroll (Windows mouse wheel)
    */
-  async scroll({ target, direction = "down", pages = 1, app }) {
+  async scroll(args = {}) {
+    const { direction = "down", pages = 1, app } = args;
+    const coords = extractTargetCoords(args);
+    const elementIndex = extractElementIndex(args);
+
     return await this.nativeRunner.scroll({
-      target,
+      target: coords,
+      element_index: elementIndex,
       direction,
       pages,
       app: extractAppName({ app }),
@@ -77,10 +113,15 @@ export class WindowsComputerUseActionHandler {
   /**
    * 4. Type Text (Windows SendInput unicode)
    */
-  async typeText({ text, target, app }) {
+  async typeText(args = {}) {
+    const { text, app } = args;
+    const coords = extractTargetCoords(args);
+    const elementIndex = extractElementIndex(args);
+
     return await this.nativeRunner.typeText({
-      text,
-      target,
+      text: text ?? args.value ?? args.string ?? "",
+      target: coords,
+      element_index: elementIndex,
       app: extractAppName({ app }),
     });
   }
@@ -88,7 +129,7 @@ export class WindowsComputerUseActionHandler {
   /**
    * 5. Press Key (Windows virtual keys & hotkeys)
    */
-  async pressKey({ key, app }) {
+  async pressKey({ key, app } = {}) {
     return await this.nativeRunner.pressKey({
       key,
       app: extractAppName({ app }),
@@ -98,10 +139,14 @@ export class WindowsComputerUseActionHandler {
   /**
    * 6. Set Value (Windows UI Automation / direct typing)
    */
-  async setValue({ element_index, value, targetValue, target_value, app }) {
-    const val = value ?? targetValue ?? target_value ?? "";
-    return await this.nativeRunner.typeText({
-      text: val,
+  async setValue(args = {}) {
+    const { app } = args;
+    const val = args.value ?? args.targetValue ?? args.target_value ?? "";
+    const elementIndex = extractElementIndex(args);
+
+    return await this.nativeRunner.setValue({
+      element_index: elementIndex,
+      value: val,
       app: extractAppName({ app }),
     });
   }
@@ -109,7 +154,7 @@ export class WindowsComputerUseActionHandler {
   /**
    * 7. Get App State (Windows Capture & UI Automation Tree)
    */
-  async getAppState({ app, content = "axStateAndScreenshot", disable_diffing = false }) {
+  async getAppState({ app, content = "axStateAndScreenshot", disable_diffing = false } = {}) {
     const state = await this.nativeRunner.getAppState({
       app: extractAppName({ app }),
     });
@@ -135,11 +180,13 @@ export class WindowsComputerUseActionHandler {
   /**
    * 9. Perform Accessibility Action (Windows UI Automation Invoke/Expand)
    */
-  async performAccessibilityAction({ element_index, action, app }) {
-    return await this.nativeRunner.click({
-      target: [100, 100],
-      mouse_button: "left",
-      click_count: 1,
+  async performAccessibilityAction(args = {}) {
+    const { action = "invoke", app } = args;
+    const elementIndex = extractElementIndex(args) ?? 0;
+
+    return await this.nativeRunner.performAccessibilityAction({
+      element_index: elementIndex,
+      action,
       app: extractAppName({ app }),
     });
   }

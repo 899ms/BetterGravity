@@ -414,11 +414,18 @@ export const COMPUTER_USE_TOOL_DEFINITIONS = [
 
 export class ComputerUseToolRegistry {
   constructor({ handler = null } = {}) {
-    this.handler = handler || new WindowsComputerUseActionHandler();
+    this._handler = handler;
     this.tools = new Map();
     for (const def of COMPUTER_USE_TOOL_DEFINITIONS) {
       this.tools.set(def.name, def);
     }
+  }
+
+  get handler() {
+    if (!this._handler) {
+      this._handler = new WindowsComputerUseActionHandler();
+    }
+    return this._handler;
   }
 
   /**

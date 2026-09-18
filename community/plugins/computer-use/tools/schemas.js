@@ -178,12 +178,13 @@ export const ClickToolSchema = z.object({
   target: ActionTargetSchema.optional().describe("Target element index or [x, y] coordinate pair"),
   coordinates: ActionTargetSchema.optional(),
   point: ActionTargetSchema.optional(),
+  element_index: z.number().int().nonnegative().optional(),
   mouse_button: MouseButtonSchema.optional().describe("Mouse button: left, right, middle"),
   click_count: z.number().int().positive().default(1).describe("Number of clicks (1 for single, 2 for double)"),
   app: AppTargetSchema.describe("Target Windows app: process:app.exe, .exe path, UWP AUMID, or descriptor"),
 }).transform((data) => ({
   ...data,
-  target: data.target ?? data.coordinates ?? data.point ?? [100, 100],
+  target: data.target ?? data.coordinates ?? data.point,
 })).passthrough();
 
 // 2. Drag Tool
@@ -196,6 +197,9 @@ export const DragToolSchema = z.object({
 // 3. Scroll Tool
 export const ScrollToolSchema = z.object({
   target: ActionTargetSchema.optional().describe("Element index or coordinate where scroll should occur"),
+  coordinates: ActionTargetSchema.optional(),
+  point: ActionTargetSchema.optional(),
+  element_index: z.number().int().nonnegative().optional(),
   direction: DirectionSchema.describe("Scroll direction: up, down, left, right"),
   pages: z.number().positive().optional().default(1).describe("Number of pages or steps to scroll"),
   app: AppTargetSchema.describe("Target Windows application identifier"),
@@ -207,6 +211,9 @@ export const TypeTextToolSchema = z.object({
   value: textInputString.optional(),
   string: textInputString.optional(),
   target: ActionTargetSchema.optional().describe("Optional element index or position to click before typing"),
+  coordinates: ActionTargetSchema.optional(),
+  point: ActionTargetSchema.optional(),
+  element_index: z.number().int().nonnegative().optional(),
   app: AppTargetSchema.describe("Target Windows application identifier"),
 }).transform((data) => ({
   ...data,
@@ -227,6 +234,7 @@ export const PressKeyToolSchema = z.object({
 // 6. Set Value Tool (Direct Windows UI Automation Value Assignment)
 export const SetValueToolSchema = z.object({
   element_index: z.number().int().nonnegative().optional().describe("Target element index in the UIA accessibility tree"),
+  target: ActionTargetSchema.optional(),
   value: textInputString.describe("Value to assign to the element"),
   targetValue: textInputString.optional(),
   target_value: textInputString.optional(),
@@ -247,8 +255,9 @@ export const ListAppsToolSchema = z.object({
 
 // 9. Perform Accessibility Action Tool (Windows UIA Pattern Invocations)
 export const PerformAccessibilityActionToolSchema = z.object({
-  element_index: z.number().int().nonnegative().describe("UIA Accessibility element index"),
-  action: z.string().min(1).describe("Action pattern to trigger (e.g. Invoke, Expand, Select)"),
+  element_index: z.number().int().nonnegative().optional().describe("UIA Accessibility element index"),
+  target: ActionTargetSchema.optional(),
+  action: z.string().min(1).optional().default("invoke").describe("Action pattern to trigger (e.g. Invoke, Expand, Select)"),
   app: AppTargetSchema.describe("Target Windows application identifier"),
 }).passthrough();
 

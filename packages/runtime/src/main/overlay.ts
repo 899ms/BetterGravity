@@ -147,7 +147,9 @@ export class OverlayWindow {
     this.applyInteractive(live);
 
     window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-    window.webContents.on("will-navigate", (event) => event.preventDefault());
+    window.webContents.on("will-navigate", (event, url) => {
+      if (url !== "about:blank") event.preventDefault();
+    });
 
     window.webContents.once("dom-ready", () => {
       if (window.isDestroyed() || this.live !== live) return;
@@ -162,6 +164,7 @@ export class OverlayWindow {
       if (this.live === live) {
         this.stopPointerTracking();
         this.live = undefined;
+        if (!live.window.isDestroyed()) live.window.destroy();
         this.announce();
       }
     };

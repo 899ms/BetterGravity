@@ -22,7 +22,50 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        BootstrapperService.StateChanged += OnBootstrapperStateChanged;
+        _ = BootstrapperService.StartSyncAsync();
+        UpdateSyncUI(BootstrapperService.State, BootstrapperService.StatusMessage);
+
         await InitializeInstallationAsync();
+    }
+
+    private void OnBootstrapperStateChanged(BootstrapperState state, string message)
+    {
+        Dispatcher.Invoke(() => UpdateSyncUI(state, message));
+    }
+
+    private void UpdateSyncUI(BootstrapperState state, string message)
+    {
+        VersionBadgeText.Text = $"v{BootstrapperService.ActiveVersion ?? BootstrapperService.EmbeddedVersion}";
+
+        switch (state)
+        {
+            case BootstrapperState.Checking:
+                SyncStatusPill.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#23242A"));
+                SyncStatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8AB4F8"));
+                SyncStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8AB4F8"));
+                SyncStatusText.Text = "SYNCING";
+                SyncStatusPill.ToolTip = message;
+                break;
+
+            case BootstrapperState.DownloadedLatest:
+            case BootstrapperState.UpToDate:
+                SyncStatusPill.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#142118"));
+                SyncStatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#81C995"));
+                SyncStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#81C995"));
+                SyncStatusText.Text = "LATEST";
+                SyncStatusPill.ToolTip = message;
+                break;
+
+            case BootstrapperState.OfflineFallback:
+            default:
+                SyncStatusPill.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#23242A"));
+                SyncStatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8E918F"));
+                SyncStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8E918F"));
+                SyncStatusText.Text = "OFFLINE";
+                SyncStatusPill.ToolTip = message;
+                break;
+        }
     }
 
     public void CaptureAndSave(string targetPath)

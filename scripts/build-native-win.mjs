@@ -26,6 +26,39 @@ if (existsSync(electronRuntimeSrc)) {
   cpSync(electronRuntimeSrc, windowsRuntimeDest, { recursive: true, force: true });
 }
 
+// Generate Patcher manifest.json with fresh SHA-256 hashes
+const { createHash } = await import("node:crypto");
+const { readFileSync, writeFileSync } = await import("node:fs");
+
+function getSha256(file) {
+  return createHash("sha256").update(readFileSync(file)).digest("hex");
+}
+
+const pkg = JSON.parse(readFileSync(resolve(workspace, "package.json"), "utf8"));
+const manifest = {
+  version: pkg.version,
+  generatedAt: new Date().toISOString(),
+  files: {
+    "patcher-cli.cjs": {
+      path: "apps/installer-windows/Patcher/patcher-cli.cjs",
+      sha256: getSha256(patcherCliDest)
+    },
+    "runtime/main.cjs": {
+      path: "apps/installer-windows/Patcher/runtime/main.cjs",
+      sha256: getSha256(resolve(windowsRuntimeDest, "main.cjs"))
+    },
+    "runtime/preload.cjs": {
+      path: "apps/installer-windows/Patcher/runtime/preload.cjs",
+      sha256: getSha256(resolve(windowsRuntimeDest, "preload.cjs"))
+    },
+    "runtime/repair.cjs": {
+      path: "apps/installer-windows/Patcher/runtime/repair.cjs",
+      sha256: getSha256(resolve(windowsRuntimeDest, "repair.cjs"))
+    }
+  }
+};
+writeFileSync(resolve(workspace, "apps/installer-windows/Patcher/manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+
 // 1. Build self-contained single-file executable
 execSync(
   `dotnet publish apps/installer-windows/BetterGravityInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "${winPublishDir}"`,

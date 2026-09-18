@@ -155,5 +155,83 @@ describe("ComputerUseService registration", () => {
     service.sync(disabled);
     expect(service.isServerListening).toBe(false);
   });
+
+  it("manifest generation does not instantiate action handler eagerly", async () => {
+    const { ComputerUseToolRegistry } = await import(
+      "../../../community/plugins/computer-use/tools/index.js"
+    );
+    const registry = new ComputerUseToolRegistry();
+    expect(registry._handler).toBeNull();
+    const manifest = registry.getToolManifest();
+    expect(manifest.length).toBeGreaterThan(0);
+    expect(registry._handler).toBeNull();
+  });
+});
+
+describe("WindowsComputerUseActionHandler coordinate and UIA routing", () => {
+  it("extractTargetCoords parses arrays, objects, and coordinates", async () => {
+    const { extractTargetCoords, extractElementIndex } = await import(
+      "../../../community/plugins/computer-use/tools/windows-actions.js"
+    );
+    expect(extractTargetCoords({ target: [300, 450] })).toEqual([300, 450]);
+    expect(extractTargetCoords({ coordinates: [150, 250] })).toEqual([150, 250]);
+    expect(extractTargetCoords({ point: [75, 85] })).toEqual([75, 85]);
+    expect(extractTargetCoords({ target: { x: 400, y: 500 } })).toEqual([400, 500]);
+    expect(extractTargetCoords({ x: 120, y: 340 })).toEqual([120, 340]);
+    expect(extractTargetCoords({ target: 5 })).toBeNull();
+    expect(extractTargetCoords({})).toBeNull();
+
+    expect(extractElementIndex({ element_index: 7 })).toBe(7);
+    expect(extractElementIndex({ target: 3 })).toBe(3);
+    expect(extractElementIndex({ target: [100, 200] })).toBeUndefined();
+  });
+
+  it("routes element_index and coordinates correctly without defaulting to [100, 100]", async () => {
+    const { WindowsComputerUseActionHandler } = await import(
+      "../../../community/plugins/computer-use/tools/windows-actions.js"
+    );
+
+    const calls: Array<{ action: string; args: any }> = [];
+    const mockRunner = {
+      click: async (args: any) => { calls.push({ action: "click", args }); return { status: "success" }; },
+      drag: async (args: any) => { calls.push({ action: "drag", args }); return { status: "success" }; },
+      scroll: async (args: any) => { calls.push({ action: "scroll", args }); return { status: "success" }; },
+      typeText: async (args: any) => { calls.push({ action: "typeText", args }); return { status: "success" }; },
+      setValue: async (args: any) => { calls.push({ action: "setValue", args }); return { status: "success" }; },
+      performAccessibilityAction: async (args: any) => { calls.push({ action: "performAccessibilityAction", args }); return { status: "success" }; },
+      pressKey: async (args: any) => { calls.push({ action: "pressKey", args }); return { status: "success" }; },
+      getAppState: async (args: any) => { calls.push({ action: "getAppState", args }); return { status: "success" }; },
+      listApps: async () => [],
+    };
+
+    const handler = new WindowsComputerUseActionHandler({ nativeRunner: mockRunner as any });
+
+    // Click by coordinates
+    await handler.click({ target: [450, 600] });
+    expect(calls[calls.length - 1].args.target).toEqual([450, 600]);
+    expect(calls[calls.length - 1].args.element_index).toBeUndefined();
+
+    // Click by element_index (should NOT default to [100, 100])
+    await handler.click({ element_index: 4 });
+    expect(calls[calls.length - 1].args.element_index).toBe(4);
+    expect(calls[calls.length - 1].args.target).toBeNull();
+
+    // Click by target as element index integer
+    await handler.click({ target: 2 });
+    expect(calls[calls.length - 1].args.element_index).toBe(2);
+    expect(calls[calls.length - 1].args.target).toBeNull();
+
+    // performAccessibilityAction calls runner.performAccessibilityAction with real element_index
+    await handler.performAccessibilityAction({ element_index: 3, action: "invoke" });
+    expect(calls[calls.length - 1].action).toBe("performAccessibilityAction");
+    expect(calls[calls.length - 1].args.element_index).toBe(3);
+    expect(calls[calls.length - 1].args.action).toBe("invoke");
+
+    // setValue calls runner.setValue with element_index and value
+    await handler.setValue({ element_index: 5, value: "Antigravity" });
+    expect(calls[calls.length - 1].action).toBe("setValue");
+    expect(calls[calls.length - 1].args.element_index).toBe(5);
+    expect(calls[calls.length - 1].args.value).toBe("Antigravity");
+  });
 });
 

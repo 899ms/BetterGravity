@@ -421,7 +421,10 @@ function scheduleEnhanceWorkspaceColorSettings() {
 }
 
 let settingsObserver = null;
-if (typeof document !== "undefined" && document.body) {
+function initSettingsObserver() {
+  if (typeof document === "undefined" || settingsObserver) return;
+  const target = document.body || document.documentElement;
+  if (!target) return;
   scheduleEnhanceWorkspaceColorSettings();
   settingsObserver = new MutationObserver((mutations) => {
     for (let i = 0; i < mutations.length; i++) {
@@ -435,7 +438,14 @@ if (typeof document !== "undefined" && document.body) {
       }
     }
   });
-  settingsObserver.observe(document.body, { childList: true });
+  settingsObserver.observe(target, { childList: true, subtree: true });
+}
+if (typeof document !== "undefined") {
+  if (document.body) {
+    initSettingsObserver();
+  } else {
+    document.addEventListener("DOMContentLoaded", initSettingsObserver, { once: true });
+  }
 }
 
 
@@ -2975,9 +2985,9 @@ const activeViewBodyObserver = new MutationObserver((mutations) => {
     }
     if (m.type === 'attributes') {
       if (m.attributeName === 'aria-pressed' || m.attributeName === 'data-bettergravity-active') return true;
-      if (m.attributeName === 'class' && m.target === document.body) {
+      if (m.attributeName === 'class' && (m.target === document.body || m.target === document.documentElement)) {
         const oldClass = m.oldValue || '';
-        const newClass = document.body.className;
+        const newClass = (document.body || document.documentElement).className;
         return oldClass.includes('bettergravity-') !== newClass.includes('bettergravity-') ||
                oldClass.includes('gemini-skills-') !== newClass.includes('gemini-skills-');
       }
@@ -2988,13 +2998,26 @@ const activeViewBodyObserver = new MutationObserver((mutations) => {
     syncActiveSidebarState();
   }
 });
-activeViewBodyObserver.observe(document.body, {
-  attributes: true,
-  attributeFilter: ['class', 'aria-pressed', 'data-bettergravity-active'],
-  attributeOldValue: true,
-  childList: true,
-  subtree: true
-});
+
+function bindActiveViewBodyObserver() {
+  const target = document.body || document.documentElement;
+  if (!target) return;
+  activeViewBodyObserver.observe(target, {
+    attributes: true,
+    attributeFilter: ['class', 'aria-pressed', 'data-bettergravity-active'],
+    attributeOldValue: true,
+    childList: true,
+    subtree: true
+  });
+}
+bindActiveViewBodyObserver();
+if (typeof document !== 'undefined' && !document.body) {
+  document.addEventListener('DOMContentLoaded', () => {
+    activeViewBodyObserver.disconnect();
+    bindActiveViewBodyObserver();
+    syncActiveSidebarState();
+  }, { once: true });
+}
 plugin.onDispose(() => activeViewBodyObserver.disconnect());
 
 const HEADERBTN_SELECTOR = '.group\\/headerbtn, button[class*="group/headerbtn"]';

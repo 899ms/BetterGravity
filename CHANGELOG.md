@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-09-19
+
+### Added
+
+- **Intelligent Online Bootstrapper Engine across All Platforms**:
+  - Installers for Windows (WPF), macOS (SwiftUI), Linux (GTK4), and Electron now dynamically check and pull the latest patcher runtime and manifests directly from GitHub.
+  - Background SHA-256 hash validation with atomic caching (`%LOCALAPPDATA%\BetterGravity\PatcherCache` on Windows, `~/Library/Caches/BetterGravity` on macOS, `~/.cache/BetterGravity` on Linux).
+  - Instant offline fallback to embedded runtime bundles when disconnected or offline.
+  - Real-time sync status indicator pill (`SYNCING`, `LATEST`, `OFFLINE`) seamlessly integrated into the Willow design system header on all platforms.
+
+### Fixed
+
+- **Antigravity 2.15.0 Compatibility & Startup Blank Screen Fix**:
+  - Resolved startup crash and blank window ("full null") caused by Antigravity 2.15.0's new loopback frame separation and internal `loadingOverlay` (`data:text/html`).
+  - Runtime preload bridge strictly verifies loopback origin protocols (`127.0.0.1`, `localhost`, `[::1]`) before injecting runtime bridges, safely ignoring data-URI loading frames.
+  - Main overlay window management allows `about:blank` transitions and destroys failed/crashed webviews cleanly.
+  - Updated AST source patches for 2.15.0 compatibility while preserving full backward compatibility with 2.14.x.
+  - Added defensive DOM observers in `gemini-app` and `in-built-browser` plugins guarding against unmounted document bodies.
+
 ## [2.0.2] - 2026-09-17
 
 ### Added

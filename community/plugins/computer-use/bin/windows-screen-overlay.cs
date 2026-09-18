@@ -353,8 +353,8 @@ namespace ComputerUseOverlay {
             Top = 0;
             Width = screenWidth;
             Height = screenHeight;
-            Visibility = Visibility.Visible;
-            Opacity = 1.0;
+            Visibility = Visibility.Hidden;
+            Opacity = 0.0;
 
             mainCanvas = new Canvas {
                 Width = screenWidth,
@@ -390,7 +390,7 @@ namespace ComputerUseOverlay {
             scootAxisSpring = new Spring(0, 0, 0.82, 0.055);
             scootStretchSpring = new Spring(1, 1, 0.86, 0.12);
             stretchSpring = new Spring(1, 1, 0.85, 0.20);
-            visibilitySpring = new Spring(1, 1, 0.86, 0.42);
+            visibilitySpring = new Spring(0, 0, 0.86, 0.42);
 
             BuildUI();
 
@@ -400,7 +400,7 @@ namespace ComputerUseOverlay {
             animTimer.Start();
 
             idleFadeTimer = new DispatcherTimer();
-            idleFadeTimer.Interval = TimeSpan.FromMinutes(10);
+            idleFadeTimer.Interval = TimeSpan.FromSeconds(4);
             idleFadeTimer.Tick += (s, e) => {
                 idleFadeTimer.Stop();
                 FadeOut();
@@ -420,7 +420,9 @@ namespace ComputerUseOverlay {
             Loaded += (s, e) => {
                 UpdateCachedPillBounds();
                 InstallHooks();
-                ShowActive("Antigravity is controlling...");
+                DisableInputBlock();
+                Visibility = Visibility.Hidden;
+                Opacity = 0.0;
             };
 
             Closed += (s, e) => {
@@ -513,27 +515,35 @@ namespace ComputerUseOverlay {
                         return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
                     }
 
-                    // Physical click over the Stop button immediately triggers interrupt!
+                    // Physical click over Stop button or anywhere on screen releases control
                     if (wMsg == WM_LBUTTONDOWN || wMsg == WM_NCLBUTTONDOWN) {
                         if (IsScreenPointOverStop(ms.pt.x, ms.pt.y)) {
                             if (_currentInstance != null) {
                                 _currentInstance.Dispatcher.BeginInvoke(new Action(() => _currentInstance.TriggerInterrupt()));
                             }
-                            return (IntPtr)1; // Consume click so it doesn't click whatever is behind the stop button
+                            return (IntPtr)1; // Consume click over the stop button
                         }
-                        // Suppress physical click elsewhere to prevent unfocusing the automated app
-                        return (IntPtr)1;
+                        // Physical click outside: immediately release lock and let click through to Windows
+                        _inputBlockingEnabled = false;
+                        if (_currentInstance != null) {
+                            _currentInstance.Dispatcher.BeginInvoke(new Action(() => _currentInstance.TriggerInterrupt()));
+                        }
+                        return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
                     }
                     if (wMsg == WM_LBUTTONUP || wMsg == WM_NCLBUTTONUP) {
                         if (IsScreenPointOverStop(ms.pt.x, ms.pt.y)) {
                             return (IntPtr)1;
                         }
-                        return (IntPtr)1;
+                        return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
                     }
 
-                    // Suppress physical mouse scroll and other buttons
-                    if (wMsg == WM_MOUSEWHEEL || wMsg == WM_RBUTTONDOWN || wMsg == WM_RBUTTONUP || wMsg == WM_MBUTTONDOWN || wMsg == WM_MBUTTONUP) {
-                        return (IntPtr)1;
+                    // Physical right/middle click immediately yields control
+                    if (wMsg == WM_RBUTTONDOWN || wMsg == WM_MBUTTONDOWN) {
+                        _inputBlockingEnabled = false;
+                        if (_currentInstance != null) {
+                            _currentInstance.Dispatcher.BeginInvoke(new Action(() => _currentInstance.TriggerInterrupt()));
+                        }
+                        return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
                     }
                 }
             } catch {}
@@ -1268,10 +1278,6 @@ namespace ComputerUseOverlay {
                     bool success = ar.AsyncWaitHandle.WaitOne(80);
                     if (success && client.Connected) {
                         client.EndConnect(ar);
-                        using (NetworkStream stream = client.GetStream())
-                        using (StreamWriter w = new StreamWriter(stream, Encoding.UTF8)) {
-                            w.WriteLine("{\"action\":\"idle\",\"status\":\"Antigravity is controlling...\"}");
-                        }
                         return;
                     }
                 }

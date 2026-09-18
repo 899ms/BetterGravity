@@ -3682,7 +3682,7 @@ var fs = resolveFileSystem();
 var import_node_path3 = __toESM(require("node:path"), 1);
 
 // ../../packages/shared/src/index.ts
-var BETTERGRAVITY_VERSION = "2.0.2";
+var BETTERGRAVITY_VERSION = "3.0.0";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
   if (typeof version !== "string") return false;
