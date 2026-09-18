@@ -2295,6 +2295,7 @@ function petSurface(host, data) {
     // A held pet does not look around, so the pose has to come off now.
     paint();
     refresh();
+    if (desktop) host.send({ type: "bettergravity:overlay-drag-state", dragging: true });
   });
 
   on(
@@ -2340,6 +2341,7 @@ function petSurface(host, data) {
 
     const held = drag;
     drag = null;
+    if (desktop) host.send({ type: "bettergravity:overlay-drag-state", dragging: false });
     // Codex clears the transient here, so the pet stops running the instant it is
     // let go and flies through the air as whatever the agent is doing.
     transient = null;
@@ -2865,11 +2867,33 @@ function petSurface(host, data) {
     host.onMessage((message) => {
       if (message === null || typeof message !== "object") return;
 
+      // While dragging across multiple screens, the window hops between monitors.
+      if (message.type === "bettergravity:overlay-display-switched") {
+        if (drag !== null && message.bounds && Number.isFinite(message.cursorX) && Number.isFinite(message.cursorY)) {
+          const localX = message.cursorX - message.bounds.x;
+          const localY = message.cursorY - message.bounds.y;
+          drag.x = localX;
+          drag.y = localY;
+          place(localX - drag.grabX, localY - drag.grabY);
+          refresh();
+        }
+        return;
+      }
+
       // The native window also samples the desktop cursor. This recovers hover
       // and click-through state when Windows stops forwarding mousemove events.
       if (message.type === "bettergravity:overlay-pointer") {
         if (desktop && Number.isFinite(message.x) && Number.isFinite(message.y)) {
-          updatePointer(message.x, message.y);
+          if (drag !== null) {
+            drag.samples = prune([...drag.samples, { x: message.x, y: message.y, timeMs: performance.now() }]);
+            drag.hasMoved = true;
+            drag.x = message.x;
+            drag.y = message.y;
+            place(message.x - drag.grabX, message.y - drag.grabY);
+            refresh();
+          } else {
+            updatePointer(message.x, message.y);
+          }
         }
         return;
       }
