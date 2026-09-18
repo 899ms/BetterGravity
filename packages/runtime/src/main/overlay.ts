@@ -29,6 +29,8 @@ interface Live {
   attached: boolean;
   interactive: boolean;
   focusable: boolean;
+  displayId?: number;
+  dragging?: boolean;
 }
 
 function boundsOf(display: Electron.Display): OverlayBounds {
@@ -65,7 +67,10 @@ export class OverlayWindow {
   status(): OverlayStatus {
     const live = this.live;
     if (!live || live.window.isDestroyed()) return { open: false };
-    return { open: true, bounds: boundsOf(displayFor(live.surface.display)) };
+    const current = live.displayId !== undefined && typeof screen.getAllDisplays === "function"
+      ? screen.getAllDisplays().find(d => d.id === live.displayId)
+      : undefined;
+    return { open: true, bounds: boundsOf(current ?? displayFor(live.surface.display)) };
   }
 
   /**
@@ -126,7 +131,8 @@ export class OverlayWindow {
 
     const live: Live = {
       window, owner, surface, attached: false,
-      interactive: surface.interactive === true, focusable: false
+      interactive: surface.interactive === true, focusable: false,
+      displayId: display.id
     };
     this.live = live;
 
@@ -257,6 +263,29 @@ export class OverlayWindow {
       }
       try {
         const cursor = screen.getCursorScreenPoint();
+
+        // While dragging across multiple displays, hop the overlay window to the active display
+        if (live.dragging && typeof screen.getDisplayNearestPoint === "function") {
+          const targetDisplay = screen.getDisplayNearestPoint(cursor);
+          if (targetDisplay && live.displayId !== undefined && targetDisplay.id !== live.displayId) {
+            live.displayId = targetDisplay.id;
+            if (typeof live.window.setBounds === "function") {
+              live.window.setBounds(targetDisplay.workArea);
+            }
+            const bounds = boundsOf(targetDisplay);
+            if (live.attached) {
+              live.window.webContents.send(CHANNEL.overlayStatus, { open: true, bounds });
+              live.window.webContents.send(CHANNEL.overlayMessage, {
+                type: "bettergravity:overlay-display-switched",
+                bounds,
+                cursorX: cursor.x,
+                cursorY: cursor.y
+              });
+            }
+            this.announce();
+          }
+        }
+
         const bounds = live.window.getContentBounds();
         const zoom = live.window.webContents.getZoomFactor();
         if (!Number.isFinite(zoom) || zoom <= 0) return;
@@ -272,7 +301,7 @@ export class OverlayWindow {
         // Display reconfiguration can temporarily make a native cursor read fail.
       }
     };
-    const timer = setInterval(sample, 50);
+    const timer = setInterval(sample, 25);
     timer.unref();
     this.pointerTimer = timer;
     sample();
@@ -294,6 +323,14 @@ export class OverlayWindow {
   toPage(message: unknown): void {
     const page = this.page;
     if (!page || page.isDestroyed()) return;
+    if (message !== null && typeof message === "object" &&
+      "type" in message && message.type === "bettergravity:overlay-drag-state") {
+      const live = this.live;
+      if (live) {
+        live.dragging = (message as { dragging?: boolean }).dragging === true;
+      }
+      return;
+    }
     if (message !== null && typeof message === "object" &&
       "type" in message && message.type === "bettergravity:overlay-context-menu") {
       this.showContextMenu(message);
@@ -370,9 +407,14 @@ export class OverlayWindow {
     const resize = () => {
       const live = this.live;
       if (!live || live.window.isDestroyed()) return;
-      const display = displayFor(live.surface.display);
+      const current = live.displayId !== undefined && typeof screen.getAllDisplays === "function"
+        ? screen.getAllDisplays().find(d => d.id === live.displayId)
+        : undefined;
+      const display = current ?? displayFor(live.surface.display);
       const area: Rectangle = display.workArea;
-      live.window.setBounds(area);
+      if (typeof live.window.setBounds === "function") {
+        live.window.setBounds(area);
+      }
       if (live.attached) live.window.webContents.send(CHANNEL.overlayStatus, this.status());
       this.announce();
     };
