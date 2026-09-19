@@ -33,7 +33,7 @@ public static class BootstrapperService
 
     private static readonly HttpClient HttpClient = new()
     {
-        Timeout = TimeSpan.FromSeconds(6)
+        Timeout = TimeSpan.FromSeconds(15)
     };
 
     private static readonly string CacheDirectory = Path.Combine(
@@ -75,7 +75,7 @@ public static class BootstrapperService
         var task = StartSyncAsync();
         try
         {
-            await Task.WhenAny(task, Task.Delay(5000));
+            await Task.WhenAny(task, Task.Delay(15000));
         }
         catch
         {
@@ -150,7 +150,8 @@ public static class BootstrapperService
         {
             Directory.CreateDirectory(RuntimeCacheDirectory);
 
-            var manifestJson = await HttpClient.GetStringAsync(ManifestUrl);
+            var manifestUrl = $"{ManifestUrl}?t={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            var manifestJson = await HttpClient.GetStringAsync(manifestUrl);
             if (string.IsNullOrWhiteSpace(manifestJson))
             {
                 UpdateState(BootstrapperState.OfflineFallback, "Using offline patcher bundle");
@@ -198,8 +199,8 @@ public static class BootstrapperService
                         continue; // Already up to date
                     }
 
-                    // Download fresh file from GitHub
-                    var fileUrl = RawBaseUrl + relativeRepoPath.TrimStart('/');
+                    // Download fresh file from GitHub with cache-busting
+                    var fileUrl = $"{RawBaseUrl}{relativeRepoPath.TrimStart('/')}?t={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
                     var fileBytes = await HttpClient.GetByteArrayAsync(fileUrl);
                     var downloadedSha = ComputeSha256(fileBytes);
 
