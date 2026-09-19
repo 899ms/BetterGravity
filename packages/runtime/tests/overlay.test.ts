@@ -179,6 +179,7 @@ describe("desktop overlay native context menu", () => {
 describe("desktop overlay keyboard focus", () => {
   it("opens without taking keyboard focus from Antigravity", () => {
     const window = open();
+    expect(window.options["backgroundColor"]).toBe("#00000000");
     expect(window.options["focusable"]).toBe(false);
     expect(window.options["show"]).toBe(false);
     expect(window.focus).not.toHaveBeenCalled();

@@ -289,6 +289,12 @@ function registerChannels(
  * into a stock launch.
  */
 export function activate(context: RuntimeContext): void {
+  if (process.platform === "win32") {
+    try {
+      app.commandLine.appendSwitch("enable-transparent-visuals");
+    } catch {}
+  }
+
   // Deliberately not app.getPath("userData"): the bootstrap restores the host's
   // app name, so that path belongs to Antigravity. BetterGravity keeps its own.
   const paths = runtimePaths(path.join(app.getPath("appData"), "BetterGravity"));

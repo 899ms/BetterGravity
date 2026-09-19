@@ -5208,6 +5208,12 @@ const HELLO_TIMEOUT_MS = 4000;
 
 /** The pet on the desktop, or null when the window could not be opened. */
 async function desktopSurface(data) {
+  // On Windows, frameless transparent desktop overlays can experience DWM surface issues.
+  // Unless the user explicitly configured "desktop" in settings, keep the pet inside the window.
+  if (typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") && settings.home !== "desktop") {
+    return null;
+  }
+
   // Nothing in here may throw. `plugin.overlay` is the newest thing in the
   // plugin API, so a BetterGravity that predates it has no `overlay` on the
   // context at all — and a pet in the window is worth much more than an
@@ -5862,8 +5868,10 @@ async function start() {
 
   const data = { config: configOf(), entries: activity, working, at: position, activityPillsVisible, badgeCorner };
 
+  const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
+  const wantsDesktop = settings.home === "desktop";
   const next =
-    settings.home === "window"
+    (!wantsDesktop || (isWindows && !wantsDesktop))
       ? windowSurface(data)
       : ((await desktopSurface(data)) ?? windowSurface(data));
 

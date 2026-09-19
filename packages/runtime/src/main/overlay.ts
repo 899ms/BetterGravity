@@ -108,6 +108,7 @@ export class OverlayWindow {
         // overlay behind it when the editor is minimised, which is the one
         // moment a desktop pet should still be on screen.
         acceptFirstMouse: true,
+        backgroundColor: "#00000000",
         focusable: false,
         frame: false,
         fullscreenable: false,
