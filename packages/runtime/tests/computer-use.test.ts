@@ -158,6 +158,7 @@ describe("ComputerUseService registration", () => {
 
   it("manifest generation does not instantiate action handler eagerly", async () => {
     const { ComputerUseToolRegistry } = await import(
+      // @ts-ignore -- untyped plugin JS module
       "../../../community/plugins/computer-use/tools/index.js"
     );
     const registry = new ComputerUseToolRegistry();
@@ -171,6 +172,7 @@ describe("ComputerUseService registration", () => {
 describe("WindowsComputerUseActionHandler coordinate and UIA routing", () => {
   it("extractTargetCoords parses arrays, objects, and coordinates", async () => {
     const { extractTargetCoords, extractElementIndex } = await import(
+      // @ts-ignore -- untyped plugin JS module
       "../../../community/plugins/computer-use/tools/windows-actions.js"
     );
     expect(extractTargetCoords({ target: [300, 450] })).toEqual([300, 450]);
@@ -188,6 +190,7 @@ describe("WindowsComputerUseActionHandler coordinate and UIA routing", () => {
 
   it("routes element_index and coordinates correctly without defaulting to [100, 100]", async () => {
     const { WindowsComputerUseActionHandler } = await import(
+      // @ts-ignore -- untyped plugin JS module
       "../../../community/plugins/computer-use/tools/windows-actions.js"
     );
 
@@ -208,30 +211,30 @@ describe("WindowsComputerUseActionHandler coordinate and UIA routing", () => {
 
     // Click by coordinates
     await handler.click({ target: [450, 600] });
-    expect(calls[calls.length - 1].args.target).toEqual([450, 600]);
-    expect(calls[calls.length - 1].args.element_index).toBeUndefined();
+    expect(calls.at(-1)!.args.target).toEqual([450, 600]);
+    expect(calls.at(-1)!.args.element_index).toBeUndefined();
 
     // Click by element_index (should NOT default to [100, 100])
     await handler.click({ element_index: 4 });
-    expect(calls[calls.length - 1].args.element_index).toBe(4);
-    expect(calls[calls.length - 1].args.target).toBeNull();
+    expect(calls.at(-1)!.args.element_index).toBe(4);
+    expect(calls.at(-1)!.args.target).toBeNull();
 
     // Click by target as element index integer
     await handler.click({ target: 2 });
-    expect(calls[calls.length - 1].args.element_index).toBe(2);
-    expect(calls[calls.length - 1].args.target).toBeNull();
+    expect(calls.at(-1)!.args.element_index).toBe(2);
+    expect(calls.at(-1)!.args.target).toBeNull();
 
     // performAccessibilityAction calls runner.performAccessibilityAction with real element_index
     await handler.performAccessibilityAction({ element_index: 3, action: "invoke" });
-    expect(calls[calls.length - 1].action).toBe("performAccessibilityAction");
-    expect(calls[calls.length - 1].args.element_index).toBe(3);
-    expect(calls[calls.length - 1].args.action).toBe("invoke");
+    expect(calls.at(-1)!.action).toBe("performAccessibilityAction");
+    expect(calls.at(-1)!.args.element_index).toBe(3);
+    expect(calls.at(-1)!.args.action).toBe("invoke");
 
     // setValue calls runner.setValue with element_index and value
     await handler.setValue({ element_index: 5, value: "Antigravity" });
-    expect(calls[calls.length - 1].action).toBe("setValue");
-    expect(calls[calls.length - 1].args.element_index).toBe(5);
-    expect(calls[calls.length - 1].args.value).toBe("Antigravity");
+    expect(calls.at(-1)!.action).toBe("setValue");
+    expect(calls.at(-1)!.args.element_index).toBe(5);
+    expect(calls.at(-1)!.args.value).toBe("Antigravity");
   });
 });
 

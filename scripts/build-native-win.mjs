@@ -9,7 +9,8 @@ const lightPublishDir = resolve(outDir, "windows-light");
 
 mkdirSync(outDir, { recursive: true });
 
-// Ensure patcher CLI is freshly bundled
+// Ensure runtime and patcher CLI are freshly bundled
+execSync("node build.mjs", { cwd: resolve(workspace, "packages/runtime"), stdio: "inherit" });
 execSync("node packages/patcher/build-cli.mjs", { cwd: workspace, stdio: "inherit" });
 
 const patcherCliSrc = resolve(workspace, "packages/patcher/dist/native/patcher-cli.cjs");
@@ -19,12 +20,16 @@ if (existsSync(patcherCliSrc)) {
 }
 
 // Ensure runtime bundles are synced to installer-windows Patcher directory
-const electronRuntimeSrc = resolve(workspace, "apps/installer/dist-electron/runtime");
 const windowsRuntimeDest = resolve(workspace, "apps/installer-windows/Patcher/runtime");
-if (existsSync(electronRuntimeSrc)) {
-  mkdirSync(windowsRuntimeDest, { recursive: true });
-  cpSync(electronRuntimeSrc, windowsRuntimeDest, { recursive: true, force: true });
-}
+mkdirSync(windowsRuntimeDest, { recursive: true });
+
+const runtimeMainSrc = resolve(workspace, "packages/runtime/dist/main.cjs");
+const runtimePreloadSrc = resolve(workspace, "packages/runtime/dist/preload.cjs");
+const runtimeRepairSrc = resolve(workspace, "packages/patcher/dist/native/repair.cjs");
+
+if (existsSync(runtimeMainSrc)) cpSync(runtimeMainSrc, resolve(windowsRuntimeDest, "main.cjs"), { force: true });
+if (existsSync(runtimePreloadSrc)) cpSync(runtimePreloadSrc, resolve(windowsRuntimeDest, "preload.cjs"), { force: true });
+if (existsSync(runtimeRepairSrc)) cpSync(runtimeRepairSrc, resolve(windowsRuntimeDest, "repair.cjs"), { force: true });
 
 // Generate Patcher manifest.json with fresh SHA-256 hashes
 const { createHash } = await import("node:crypto");

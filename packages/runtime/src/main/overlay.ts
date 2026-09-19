@@ -1,6 +1,11 @@
+import path from "node:path";
 import { BrowserWindow, Menu, screen, type Rectangle } from "electron";
 import { CHANNEL, OVERLAY_ARGUMENT, type OverlayBounds, type OverlayStatus, type OverlaySurface } from "../protocol.js";
 import { logger } from "./logger.js";
+
+const TRANSPARENT_PAGE = `data:text/html;charset=utf-8,${encodeURIComponent(
+  "<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent!important;}</style></head><body></body></html>"
+)}`;
 
 /**
  * A window on the desktop rather than in the page.
@@ -121,6 +126,7 @@ export class OverlayWindow {
           contextIsolation: true,
           nodeIntegration: false,
           sandbox: false,
+          preload: path.join(__dirname, "preload.cjs"),
           additionalArguments: [OVERLAY_ARGUMENT]
         }
       });
@@ -148,7 +154,7 @@ export class OverlayWindow {
 
     window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     window.webContents.on("will-navigate", (event, url) => {
-      if (url !== "about:blank") event.preventDefault();
+      if (url !== "about:blank" && !url.startsWith("data:text/html")) event.preventDefault();
     });
 
     window.webContents.once("dom-ready", () => {
@@ -171,10 +177,9 @@ export class OverlayWindow {
     window.webContents.on("render-process-gone", gone);
     window.on("closed", gone);
 
-    // about:blank rather than a file: the document is the plugin's to build, and
-    // a blank page carries no CSP to fight and no asset to keep in step with the
-    // rest of the runtime.
-    window.loadURL("about:blank").catch((error: unknown) => {
+    // Load an intrinsically transparent HTML document so Chromium never paints
+    // a default opaque or dark background before the surface script executes.
+    window.loadURL(TRANSPARENT_PAGE).catch((error: unknown) => {
       logger.error("The overlay window could not load.", error);
       gone();
     });
