@@ -25,6 +25,21 @@ export function relaxContentSecurityPolicy(session: Session): void {
 }
 
 /**
+ * Trust loopback TLS connections (127.0.0.1 and localhost) used by Antigravity's
+ * internal language server. This ensures main-process net.fetch calls in the
+ * source interceptor never fail or reject with certificate verification errors.
+ */
+export function trustLoopbackCertificates(session: Session): void {
+  session.setCertificateVerifyProc((request, callback) => {
+    if (request.hostname === "127.0.0.1" || request.hostname === "localhost" || request.hostname === "::1" || request.hostname === "[::1]") {
+      callback(0);
+    } else {
+      callback(-3);
+    }
+  });
+}
+
+/**
  * Antigravity ships its own Electron build, which may be older or newer than the
  * one this package is typed against, so both preload registration APIs are
  * probed at runtime rather than assumed.

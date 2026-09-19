@@ -26,7 +26,7 @@ import { fetchCatalog, installEntry } from "./marketplace.js";
 import { logger } from "./logger.js";
 import { directoryFor, ensureDirectories, migrateLegacyContent, runtimePaths, type RuntimePaths } from "./paths.js";
 import { applyPatch, readSettings, writeSettings } from "./settings.js";
-import { attachPreload, relaxContentSecurityPolicy } from "./session.js";
+import { attachPreload, relaxContentSecurityPolicy, trustLoopbackCertificates } from "./session.js";
 import { PluginStorageStore } from "./storage.js";
 import { spawnGuardian } from "./guardian.js";
 import { installSourceInterceptor } from "./intercept.js";
@@ -289,11 +289,6 @@ function registerChannels(
  * into a stock launch.
  */
 export function activate(context: RuntimeContext): void {
-  if (process.platform === "win32") {
-    try {
-      app.commandLine.appendSwitch("enable-transparent-visuals");
-    } catch {}
-  }
 
   // Deliberately not app.getPath("userData"): the bootstrap restores the host's
   // app name, so that path belongs to Antigravity. BetterGravity keeps its own.
@@ -368,8 +363,9 @@ export function activate(context: RuntimeContext): void {
         const preloadPath = path.join(__dirname, "preload.cjs");
         if (!fs.existsSync(preloadPath)) throw new Error(`The runtime preload is missing at ${preloadPath}.`);
         const target = session.defaultSession;
-      relaxContentSecurityPolicy(target);
-      const method = attachPreload(target, preloadPath);
+        relaxContentSecurityPolicy(target);
+        trustLoopbackCertificates(target);
+        const method = attachPreload(target, preloadPath);
 
       // Register before any window opens, then read current declarations on
       // script requests so a window reload keeps plugin updates and settings.
