@@ -46,7 +46,7 @@ const isLoopbackHost = (() => {
  * the overlay has no host application to theme and no plugins to host, and the
  * bridge it needs is a different one entirely.
  */
-const isOverlayWindow = process.argv.includes(OVERLAY_ARGUMENT);
+const isOverlayWindow = process.argv.includes(OVERLAY_ARGUMENT) || location.href.includes("overlay.html");
 
 /** The renderer console is unreachable in a packaged build. */
 function report(message: string): void {
@@ -56,6 +56,15 @@ function report(message: string): void {
     // Diagnostics must never break injection.
   }
 }
+
+try {
+  window.addEventListener("error", (event) => {
+    report(`uncaught error: ${event.message} at ${event.filename}:${event.lineno}`);
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    report(`unhandled rejection: ${event.reason instanceof Error ? event.reason.stack ?? event.reason.message : String(event.reason)}`);
+  });
+} catch {}
 
 function whenDocumentReady(): Promise<void> {
   if (document.readyState !== "loading") return Promise.resolve();

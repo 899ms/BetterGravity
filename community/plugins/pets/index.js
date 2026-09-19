@@ -3234,7 +3234,7 @@ const settings = plugin.settings.define({
     label: "Where it lives",
     description:
       "On the desktop, in a window of its own, the way Codex does it — so it stays with you when Antigravity is behind something else. Inside the window if your system will not give it one.",
-    default: "desktop",
+    default: typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") ? "window" : "desktop",
     options: [
       { value: "desktop", label: "On the desktop" },
       { value: "window", label: "Inside Antigravity" }
@@ -5256,7 +5256,7 @@ async function desktopSurface(data) {
     off();
     trouble = "the desktop window opened but no pet appeared in it";
     plugin.log.warn(`no desktop window: ${trouble}`);
-    handle.close();
+    try { handle.close(); } catch {}
     return null;
   }
 

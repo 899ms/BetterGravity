@@ -26,10 +26,12 @@ mkdirSync(windowsRuntimeDest, { recursive: true });
 const runtimeMainSrc = resolve(workspace, "packages/runtime/dist/main.cjs");
 const runtimePreloadSrc = resolve(workspace, "packages/runtime/dist/preload.cjs");
 const runtimeRepairSrc = resolve(workspace, "packages/patcher/dist/native/repair.cjs");
+const runtimeOverlaySrc = resolve(workspace, "packages/runtime/dist/overlay.html");
 
 if (existsSync(runtimeMainSrc)) cpSync(runtimeMainSrc, resolve(windowsRuntimeDest, "main.cjs"), { force: true });
 if (existsSync(runtimePreloadSrc)) cpSync(runtimePreloadSrc, resolve(windowsRuntimeDest, "preload.cjs"), { force: true });
 if (existsSync(runtimeRepairSrc)) cpSync(runtimeRepairSrc, resolve(windowsRuntimeDest, "repair.cjs"), { force: true });
+if (existsSync(runtimeOverlaySrc)) cpSync(runtimeOverlaySrc, resolve(windowsRuntimeDest, "overlay.html"), { force: true });
 
 // Generate Patcher manifest.json with fresh SHA-256 hashes
 const { createHash } = await import("node:crypto");
@@ -59,6 +61,10 @@ const manifest = {
     "runtime/repair.cjs": {
       path: "apps/installer-windows/Patcher/runtime/repair.cjs",
       sha256: getSha256(resolve(windowsRuntimeDest, "repair.cjs"))
+    },
+    "runtime/overlay.html": {
+      path: "apps/installer-windows/Patcher/runtime/overlay.html",
+      sha256: getSha256(resolve(windowsRuntimeDest, "overlay.html"))
     }
   }
 };

@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { BrowserWindow, Menu, screen, type Rectangle } from "electron";
 import { CHANNEL, OVERLAY_ARGUMENT, type OverlayBounds, type OverlayStatus, type OverlaySurface } from "../protocol.js";
@@ -56,6 +57,7 @@ export class OverlayWindow {
   private live: Live | undefined;
 
   private pointerTimer: NodeJS.Timeout | undefined;
+  private attachTimer: NodeJS.Timeout | undefined;
   private contextMenu: { menu: Menu; live: Live; finish(id: string | null): void } | undefined;
 
   private listeners = new Set<(status: OverlayStatus) => void>();
@@ -106,7 +108,6 @@ export class OverlayWindow {
         // overlay behind it when the editor is minimised, which is the one
         // moment a desktop pet should still be on screen.
         acceptFirstMouse: true,
-        backgroundColor: "#00000000",
         focusable: false,
         frame: false,
         fullscreenable: false,
@@ -142,6 +143,19 @@ export class OverlayWindow {
     };
     this.live = live;
 
+    if (this.attachTimer !== undefined) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = undefined;
+    }
+    const timer = setTimeout(() => {
+      if (this.live === live && !live.attached) {
+        logger.info(`Overlay surface script timed out before attaching for ${owner}. Closing window.`);
+        this.close();
+      }
+    }, 3000);
+    timer.unref?.();
+    this.attachTimer = timer;
+
     // "floating" rather than "screen-saver": high enough to sit over ordinary
     // windows, low enough that a screen lock or a system dialog still wins.
     window.setAlwaysOnTop(true, "floating");
@@ -154,20 +168,21 @@ export class OverlayWindow {
 
     window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     window.webContents.on("will-navigate", (event, url) => {
-      if (url !== "about:blank" && !url.startsWith("data:text/html")) event.preventDefault();
+      if (url !== "about:blank" && !url.startsWith("data:text/html") && !url.includes("overlay.html")) event.preventDefault();
     });
 
     window.webContents.once("dom-ready", () => {
       if (window.isDestroyed() || this.live !== live) return;
-      live.attached = true;
       window.webContents.send(CHANNEL.overlaySurface, surface);
-      window.showInactive();
       this.startPointerTracking(live);
-      this.announce();
     });
 
     const gone = () => {
       if (this.live === live) {
+        if (this.attachTimer !== undefined) {
+          clearTimeout(this.attachTimer);
+          this.attachTimer = undefined;
+        }
         this.stopPointerTracking();
         this.live = undefined;
         if (!live.window.isDestroyed()) live.window.destroy();
@@ -179,7 +194,12 @@ export class OverlayWindow {
 
     // Load an intrinsically transparent HTML document so Chromium never paints
     // a default opaque or dark background before the surface script executes.
-    window.loadURL(TRANSPARENT_PAGE).catch((error: unknown) => {
+    const overlayHtml = path.join(__dirname, "overlay.html");
+    const loadPromise = fs.existsSync(overlayHtml)
+      ? window.loadFile(overlayHtml)
+      : window.loadURL(TRANSPARENT_PAGE);
+
+    loadPromise.catch((error: unknown) => {
       logger.error("The overlay window could not load.", error);
       gone();
     });
@@ -190,6 +210,10 @@ export class OverlayWindow {
   }
 
   close(): OverlayStatus {
+    if (this.attachTimer !== undefined) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = undefined;
+    }
     this.closeContextMenu();
     this.stopPointerTracking();
     const live = this.live;
@@ -197,6 +221,20 @@ export class OverlayWindow {
     if (live && !live.window.isDestroyed()) live.window.destroy();
     if (live) this.announce();
     return { open: false };
+  }
+
+  /** Called when the renderer acknowledges the surface script has attached. */
+  attached(contents: Electron.WebContents): void {
+    const live = this.live;
+    if (!live || live.window.isDestroyed() || live.window.webContents.id !== contents.id) return;
+    if (live.attached) return;
+    live.attached = true;
+    if (this.attachTimer !== undefined) {
+      clearTimeout(this.attachTimer);
+      this.attachTimer = undefined;
+    }
+    live.window.showInactive();
+    this.announce();
   }
 
   /** True when a message came from the overlay window rather than a page. */

@@ -4055,7 +4055,7 @@ async function closeAntigravity(installationPath, onProgress) {
 }
 
 // packages/patcher/src/native/index.ts
-var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs"];
+var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs", "overlay.html"];
 var MAX_RETAINED_BACKUPS = 5;
 function inspectInstallation(installationPath) {
   if (isAntigravityIde(installationPath)) {

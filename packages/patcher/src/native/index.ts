@@ -15,7 +15,7 @@ export { bootstrapSource } from "./bootstrap.js";
  * Files copied verbatim into the installation. `repair.cjs` is the guardian the
  * runtime spawns before quitting, so it must live alongside the runtime.
  */
-export const RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs"] as const;
+export const RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs", "overlay.html"] as const;
 
 const MAX_RETAINED_BACKUPS = 5;
 

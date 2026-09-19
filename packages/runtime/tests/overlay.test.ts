@@ -52,6 +52,7 @@ vi.mock("electron", () => ({
     setBounds = vi.fn();
     on = vi.fn();
     loadURL = vi.fn(async () => undefined);
+    loadFile = vi.fn(async () => undefined);
     getContentBounds = vi.fn(() => ({ x: 0, y: 0, width: 1920, height: 1080 }));
     webContents = { setWindowOpenHandler: vi.fn(), on: vi.fn(), once: vi.fn(), send: vi.fn(), isDestroyed: () => false, getZoomFactor: vi.fn(() => 1) };
 
@@ -118,6 +119,7 @@ describe("desktop overlay native context menu", () => {
   function attach(): FakeWindow {
     const window = open(true);
     window.webContents.once.mock.calls.find(call => call[0] === "dom-ready")![1]();
+    overlay.attached(window.webContents as unknown as Electron.WebContents);
     return window;
   }
 
@@ -313,7 +315,8 @@ describe("desktop overlay app activation", () => {
 describe("desktop overlay pointer recovery", () => {
   function ready(window: FakeWindow): void {
     const callback = window.webContents.once.mock.calls.find(([name]) => name === "dom-ready")?.[1];
-    callback();
+    callback?.();
+    overlay.attached(window.webContents as unknown as Electron.WebContents);
   }
 
   const samples = (window: FakeWindow) => window.webContents.send.mock.calls

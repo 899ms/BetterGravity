@@ -140,6 +140,9 @@ function registerOverlayChannels(overlay: OverlayWindow): void {
     if (overlay.isOverlay(event.sender)) overlay.toPage(message);
     else overlay.toOverlay(message);
   });
+  ipcMain.on(CHANNEL.overlayAttached, (event) => {
+    if (overlay.isOverlay(event.sender)) overlay.attached(event.sender);
+  });
 }
 
 function registerGeminiChannels(gemini: GeminiTranslator): void {

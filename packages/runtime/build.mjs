@@ -7,7 +7,8 @@
 // disk, so it is built first and inlined into the preload as a string.
 
 import { build } from "esbuild";
-import { rm } from "node:fs/promises";
+import { copyFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 const production = process.env.NODE_ENV !== "development";
 
@@ -54,4 +55,8 @@ await Promise.all([
   })
 ]);
 
-console.log(`Runtime bundled: main.cjs, preload.cjs (page world inlined, ${(worldSource.length / 1024).toFixed(1)} KB)`);
+if (existsSync("src/overlay.html")) {
+  await copyFile("src/overlay.html", "dist/overlay.html");
+}
+
+console.log(`Runtime bundled: main.cjs, preload.cjs, overlay.html (page world inlined, ${(worldSource.length / 1024).toFixed(1)} KB)`);
