@@ -67,3 +67,6 @@ backup*.cmd
 
 # Plugin runtime signal files
 interrupt.signal
+
+# Temporary scratch and investigation artifacts
+scratch/

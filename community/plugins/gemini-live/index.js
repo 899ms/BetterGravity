@@ -2027,49 +2027,6 @@ ${recentChat ? `Current conversation context:\n${recentChat}` : ""}
   }
 }
 
-/* ── 8. UI Injection & Voice Focus Surface ─────────────────────────────────── */
-function updateSessionUI(opts = {}) {
-  const surface = document.querySelector(".gemini-live-focus-surface");
-  const bar = document.querySelector(".gemini-live-bar");
-  const liveBtn = document.querySelector('[data-testid="gemini-live-button"]');
-
-  if (opts.closed) {
-    if (activeOrbDriver) {
-      activeOrbDriver.dispose();
-      activeOrbDriver = null;
-    }
-    playLiveSessionCue("end");
-    if (surface) surface.remove();
-    if (bar) bar.remove();
-    const modal = document.querySelector(".gemini-live-modal-scrim");
-    if (modal) modal.remove();
-    if (liveBtn) liveBtn.removeAttribute("data-live-active");
-    return;
-  }
-
-  if (liveBtn && opts.active) {
-    liveBtn.setAttribute("data-live-active", "true");
-  }
-
-  if (surface) {
-    const statusTextEl = surface.querySelector(".gemini-live-status-text");
-    const transcriptTextEl = surface.querySelector(".gemini-live-transcript-text");
-    if (statusTextEl && opts.status) statusTextEl.textContent = opts.status;
-    if (transcriptTextEl && opts.transcript) transcriptTextEl.textContent = opts.transcript;
-  }
-
-  if (bar) {
-    const statusEl = bar.querySelector(".gemini-live-status-text");
-    const transcriptEl = bar.querySelector(".gemini-live-transcript");
-    const waveformEl = bar.querySelector(".gemini-live-waveform");
-
-    if (statusEl && opts.status) statusEl.textContent = opts.status;
-    if (transcriptEl && opts.transcript) transcriptEl.textContent = opts.transcript;
-    if (waveformEl) {
-      waveformEl.setAttribute("data-state", opts.active !== false ? "active" : "idle");
-    }
-  }
-}
 
 function openVoiceSettingsModal() {
   let modal = document.querySelector(".gemini-live-modal-scrim");
@@ -2391,6 +2348,21 @@ function isAgentRunning(box) {
   return !!box.querySelector('[data-tooltip-id="input-send-button-cancel-tooltip"]');
 }
 
+function setAttrIfChanged(el, attr, val) {
+  if (val === null || val === undefined) {
+    if (el.hasAttribute(attr)) el.removeAttribute(attr);
+  } else if (el.getAttribute(attr) !== val) {
+    el.setAttribute(attr, val);
+  }
+}
+
+function setIconIfChanged(button, iconType, iconSvg) {
+  if (button.dataset.iconType !== iconType) {
+    button.dataset.iconType = iconType;
+    button.innerHTML = iconSvg;
+  }
+}
+
 function updateLiveButtonState(box, button) {
   if (!box || !button) return;
   const isSessionActive = activeSession !== null;
@@ -2399,25 +2371,25 @@ function updateLiveButtonState(box, button) {
 
   if (isSessionActive) {
     if (hasText || isRunning) {
-      button.setAttribute("data-hidden", "true");
+      setAttrIfChanged(button, "data-hidden", "true");
     } else {
-      button.removeAttribute("data-hidden");
-      button.setAttribute("data-ongoing", "true");
-      button.setAttribute("data-live-active", "true");
-      button.setAttribute("aria-label", "Stop live mode");
-      button.setAttribute("title", "Stop live mode");
-      button.innerHTML = STOP_ICON_SVG;
+      setAttrIfChanged(button, "data-hidden", null);
+      setAttrIfChanged(button, "data-ongoing", "true");
+      setAttrIfChanged(button, "data-live-active", "true");
+      setAttrIfChanged(button, "aria-label", "Stop live mode");
+      setAttrIfChanged(button, "title", "Stop live mode");
+      setIconIfChanged(button, "stop", STOP_ICON_SVG);
     }
   } else {
-    button.removeAttribute("data-ongoing");
-    button.removeAttribute("data-live-active");
-    button.setAttribute("aria-label", "Gemini Live");
-    button.setAttribute("title", "Gemini Live");
-    button.innerHTML = LIVE_ICON_SVG;
+    setAttrIfChanged(button, "data-ongoing", null);
+    setAttrIfChanged(button, "data-live-active", null);
+    setAttrIfChanged(button, "aria-label", "Gemini Live");
+    setAttrIfChanged(button, "title", "Gemini Live");
+    setIconIfChanged(button, "live", LIVE_ICON_SVG);
     if (hasText || isRunning) {
-      button.setAttribute("data-hidden", "true");
+      setAttrIfChanged(button, "data-hidden", "true");
     } else {
-      button.removeAttribute("data-hidden");
+      setAttrIfChanged(button, "data-hidden", null);
     }
   }
 }
@@ -2452,6 +2424,7 @@ function ensureLiveButton(box) {
     btn.setAttribute("aria-label", "Gemini Live");
     btn.setAttribute("title", "Gemini Live");
     btn.className = "gemini-live-button";
+    btn.dataset.iconType = "live";
     btn.innerHTML = LIVE_ICON_SVG;
 
     btn.addEventListener("click", () => {
@@ -2476,7 +2449,15 @@ const stopBoxObserver = plugin.dom.observe('[data-testid="agent-input-box"]', (b
 
   ensureLiveButton(box);
 
-  activeBoxObserver = new MutationObserver(() => {
+  activeBoxObserver = new MutationObserver((mutations) => {
+    const hasExternal = mutations.some((m) => {
+      if (activeLiveButton && (m.target === activeLiveButton || activeLiveButton.contains(m.target))) {
+        return false;
+      }
+      return true;
+    });
+    if (!hasExternal) return;
+
     ensureLiveButton(box);
   });
   activeBoxObserver.observe(box, {

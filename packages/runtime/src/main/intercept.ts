@@ -25,6 +25,18 @@ function isBundle(url: string): boolean {
   }
 }
 
+function cleanHeaders(original: Headers): Headers {
+  const headers = new Headers(original);
+  // net.fetch automatically decompresses compressed response bodies (gzip, deflate, br, zstd).
+  // Leaving content-encoding causes Chromium to attempt decoding already uncompressed bytes (ERR_CONTENT_DECODING_FAILED).
+  // Leaving the compressed content-length causes ERR_CONTENT_LENGTH_MISMATCH.
+  if (headers.has("content-encoding")) {
+    headers.delete("content-encoding");
+    headers.delete("content-length");
+  }
+  return headers;
+}
+
 /**
  * Passes a request through to the network unchanged.
  *
@@ -108,7 +120,8 @@ async function passThrough(request: Request): Promise<Response> {
       }
     }
   });
-  return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
+  const headers = cleanHeaders(response.headers);
+  return new Response(body, { status: response.status, statusText: response.statusText, headers });
 }
 
 /**
@@ -180,7 +193,8 @@ export function installSourceInterceptor(
         const response = await passThrough(new Request(request, { headers: requestHeaders, cache: "no-store" }));
         if (!response.ok) return response;
 
-        const headers = new Headers(response.headers);
+        const headers = cleanHeaders(response.headers);
+        headers.delete("content-encoding");
         headers.delete("content-length");
         headers.delete("etag");
         headers.delete("last-modified");

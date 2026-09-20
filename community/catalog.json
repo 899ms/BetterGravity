@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-19T03:21:21.741Z",
+  "generatedAt": "2026-09-20T01:03:00.505Z",
   "entries": [
     {
       "id": "compact",
@@ -344,7 +344,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-app",
-      "bytes": 949846,
+      "bytes": 950341,
       "files": [
         {
           "name": "assets/antigravity-mark.png",
@@ -373,8 +373,8 @@
         },
         {
           "name": "styles/conversation.css",
-          "bytes": 75294,
-          "sha256": "b672bc6ef7eb8160b8dfd2b7096ad2be2e2cb51189eb0b7b008234fc5b3ce9c6"
+          "bytes": 75789,
+          "sha256": "1abb6d1b6bdb8bc326ebac73a5e3c4d66f68638f1c03cc3818e91d4ecfdbe7a3"
         },
         {
           "name": "styles/dialog.css",
@@ -462,7 +462,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/gemini-live",
-      "bytes": 324226,
+      "bytes": 323285,
       "files": [
         {
           "name": "assets/watercolor.webp",
@@ -476,8 +476,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 172215,
-          "sha256": "05f66eb2ab999daba7eea1bd0944036a94166b817be5d8af40e0d437acde1a4e"
+          "bytes": 171274,
+          "sha256": "cd8bf292407c03bfcf2963f10fb8ecbf0714b798a24f3971a66c95e964e1c3df"
         },
         {
           "name": "orb/shaders.js",

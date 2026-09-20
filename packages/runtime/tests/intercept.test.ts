@@ -153,6 +153,27 @@ describe("source interceptor transport", () => {
     expect(await handle(new Request(streamUrl))).toBe(original);
   });
 
+  it("strips content-encoding and content-length when the upstream response was compressed", async () => {
+    const handle = await intercept();
+    const decompressedBytes = new Uint8Array([1, 2, 3, 4, 5]);
+    fetchMock.mockImplementation(async () => {
+      return new Response(decompressedBytes, {
+        status: 200,
+        headers: {
+          "content-encoding": "gzip",
+          "content-length": "2",
+          "content-type": "text/css; charset=utf-8"
+        }
+      });
+    });
+
+    const response = await handle(new Request("https://127.0.0.1:4567/compiled_tailwind.css"));
+    expect(response.headers.has("content-encoding")).toBe(false);
+    expect(response.headers.has("content-length")).toBe(false);
+    expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8");
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(decompressedBytes);
+  });
+
   it("does not retry failed chat POSTs", async () => {
     const handle = await intercept();
     const failure = new Error("offline");
@@ -201,7 +222,7 @@ describe("source interception", () => {
       expect(options.headers.has("if-none-match")).toBe(false);
       expect(options.headers.has("if-modified-since")).toBe(false);
       return new Response("/* bundle-anchor */ original", { headers: {
-        "content-type": "text/javascript", "content-length": "28",
+        "content-type": "text/javascript", "content-length": "28", "content-encoding": "gzip",
         "etag": '"native-source"', "last-modified": "Fri, 11 Sep 2026 00:00:00 GMT", "cache-control": "public, max-age=3600"
       } });
     });
@@ -211,6 +232,7 @@ describe("source interception", () => {
 
     expect(await response.text()).toBe("/* bundle-anchor */ patched");
     expect(response.headers.get("content-type")).toBe("text/javascript");
+    expect(response.headers.has("content-encoding")).toBe(false);
     expect(response.headers.has("content-length")).toBe(false);
     expect(response.headers.has("etag")).toBe(false);
     expect(response.headers.has("last-modified")).toBe(false);

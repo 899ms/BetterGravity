@@ -61,19 +61,34 @@ body.gemini-skills-open [data-gemini-skills-hidden] {
   margin-bottom: 52px !important;
 }
 
+[data-testid="conversation-view"] [role="article"][aria-label="User message"]::after,
+[data-testid="conversation-view"] .sticky:has([data-testid="user-input-step"])::after {
+  display: none !important;
+  content: none !important;
+}
+
 /* --- 3b. The sent message ----------------------------------------------------- */
 [data-testid="user-input-step"] {
   align-items: flex-end !important;
   padding-top: 0 !important;
 }
 
+[data-testid="user-input-step"] .w-full,
+[data-testid="user-input-step"] > div {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+}
+
 /* The outer wrapper drew a 1px border ring; the bubble has none. */
-[data-testid="user-input-step"] > [data-testid="lifted-context-menu-trigger"] {
-  width: fit-content;
-  max-width: 508px;
+[data-testid="user-input-step"] [data-testid="lifted-context-menu-trigger"] {
+  width: fit-content !important;
+  max-width: 508px !important;
   padding: 0 !important;
   border-radius: 40px !important;
   background: transparent !important;
+  box-shadow: none !important;
 }
 
 [data-testid="lifted-context-menu-trigger"] > .bg-card {

@@ -308,6 +308,15 @@ describe("Gemini Live plugin settings & coding handoff", () => {
     expect(liveBtn.getAttribute("data-ongoing")).toBeNull();
   });
 
+  it("sets iconType on live button and avoids redundant mutations", () => {
+    setupComposerDom({ hasText: false });
+    executePlugin();
+    const liveBtn = document.querySelector('[data-testid="gemini-live-button"]') as HTMLButtonElement;
+    expect(liveBtn).not.toBeNull();
+    expect(liveBtn.dataset.iconType).toBe("live");
+  });
+
+
   it("cleans up all injected elements on disposal", () => {
     setupComposerDom({ hasText: false });
     executePlugin();
@@ -319,3 +328,4 @@ describe("Gemini Live plugin settings & coding handoff", () => {
     expect(document.querySelector('[data-testid="gemini-live-button"]')).toBeNull();
   });
 });
+
