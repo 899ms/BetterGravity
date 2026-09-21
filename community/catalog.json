@@ -984,17 +984,17 @@
       "id": "catppuccin-turbo.css",
       "kind": "theme",
       "name": "Catppuccin Turbo",
-      "description": "Ultra-fast, zero-latency Catppuccin Mocha theme. Removes blur/shadow GPU lag, neutralizes sluggish entrance keyframes, and applies sleek, high-contrast dark tones.",
-      "version": "1.0.1",
-      "author": "Antigravity",
+      "description": "Ultra-fast, host-aligned Catppuccin theme for Antigravity 2.0 / BetterGravity 3.0 with Mocha & Latte support.",
+      "version": "2.0.0",
+      "author": "RedPanda-Craft",
       "source": "https://github.com/catppuccin/catppuccin",
       "path": "community/themes/catppuccin-turbo.css",
-      "bytes": 8452,
+      "bytes": 46446,
       "files": [
         {
           "name": "catppuccin-turbo.css",
-          "bytes": 8452,
-          "sha256": "b342630527b99ec3b5f8a6433634a0f36e4089de4fbffdde8c6b841475d39475"
+          "bytes": 46446,
+          "sha256": "5dfe340b07ed0cb8113ea5409a9bf747da840085b410378be27d7b1ae267e676"
         }
       ]
     },
