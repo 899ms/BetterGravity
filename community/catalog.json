@@ -1022,12 +1022,12 @@
       "author": "RedPanda-Craft",
       "source": "https://github.com/catppuccin/catppuccin",
       "path": "community/themes/catppuccin-turbo.css",
-      "bytes": 46446,
+      "bytes": 46277,
       "files": [
         {
           "name": "catppuccin-turbo.css",
-          "bytes": 46446,
-          "sha256": "5dfe340b07ed0cb8113ea5409a9bf747da840085b410378be27d7b1ae267e676"
+          "bytes": 46277,
+          "sha256": "c05e4867a2b982a917e74642d835cb27c11bfa5ac699a77c9a307718b038a17b"
         }
       ]
     },
