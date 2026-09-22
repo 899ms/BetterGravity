@@ -65,9 +65,12 @@ try {
       req.on('end', () => {
         try {
           const ev = JSON.parse(body);
-          if (ev.type === 'turn_complete' || ev.action === 'done') {
+          if (ev.action === 'done') {
             clearTimeout(doneDebounceTimer);
             sendOverlayDone();
+          } else if (ev.type === 'turn_complete') {
+            clearTimeout(doneDebounceTimer);
+            doneDebounceTimer = setTimeout(sendOverlayDone, 10000);
           }
           broadcastEvent(ev);
         } catch {}
@@ -172,7 +175,7 @@ async function handleMessage(message) {
       });
     } finally {
       clearTimeout(doneDebounceTimer);
-      doneDebounceTimer = setTimeout(sendOverlayDone, 3800);
+      doneDebounceTimer = setTimeout(sendOverlayDone, 10000);
     }
     return;
   }
