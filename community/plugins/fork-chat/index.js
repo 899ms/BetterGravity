@@ -322,21 +322,41 @@ async function forkFromSnapshot(agentService, request) {
 
   // Let the native service create the worktree from the now-idle prefix.
   // Keep its backing conversation archived because the fork can reference it.
+  let keepSnapshotActive = false;
   try {
     return await agentService.forkConversation({
       sourceCascadeId: snapshotId,
       forkAtStepIndex: snapshot.steps.length - 1,
       targetForkWorkspace: 2
     });
-  } finally {
-    try {
-      await agentService.updateConversationAnnotations(snapshotId, { archived: true }, true);
-    } catch {
+  } catch (worktreeErr) {
+    const wtMsg = worktreeErr?.message || String(worktreeErr);
+    if (/not a valid branch name|check-ref-format|failed to create worktree|vcs unknown|cannot clone workspace|no git repository/i.test(wtMsg)) {
       plugin.ui.toast({
-        title: "Extra fork copy in history",
-        body: "The temporary copy could not be hidden. You can archive it from the sidebar.",
-        kind: "warning"
+        title: "Worktree branch unavailable",
+        body: "Git worktree requires a valid repository. Forking into current workspace instead...",
+        kind: "info",
+        duration: 4000
       });
+      keepSnapshotActive = true;
+      return {
+        newCascadeId: snapshotId,
+        newProjectId: started.projectEnvInfo?.projectId || projectId || "outside-of-project",
+        forkedAtStepIndex: snapshot.steps.length - 1
+      };
+    }
+    throw worktreeErr;
+  } finally {
+    if (!keepSnapshotActive) {
+      try {
+        await agentService.updateConversationAnnotations(snapshotId, { archived: true }, true);
+      } catch {
+        plugin.ui.toast({
+          title: "Extra fork copy in history",
+          body: "The temporary copy could not be hidden. You can archive it from the sidebar.",
+          kind: "warning"
+        });
+      }
     }
   }
 }
@@ -400,11 +420,31 @@ async function runFork(sourceCascadeId, forkAtStepIndex, targetForkWorkspace, ti
 
   const run = async () => {
     try {
-      const response = await forkConversation(agentService, {
-        sourceCascadeId,
-        forkAtStepIndex,
-        targetForkWorkspace: target
-      });
+      let response;
+      try {
+        response = await forkConversation(agentService, {
+          sourceCascadeId,
+          forkAtStepIndex,
+          targetForkWorkspace: target
+        });
+      } catch (forkErr) {
+        const errMsg = forkErr?.message || String(forkErr);
+        if (target === 2 && /not a valid branch name|check-ref-format|failed to create worktree|vcs unknown|cannot clone workspace|no git repository/i.test(errMsg)) {
+          plugin.ui.toast({
+            title: "Worktree branch unavailable",
+            body: "Git worktree requires a valid repository. Forking into current workspace instead...",
+            kind: "info",
+            duration: 4000
+          });
+          response = await forkConversation(agentService, {
+            sourceCascadeId,
+            forkAtStepIndex,
+            targetForkWorkspace: 1
+          });
+        } else {
+          throw forkErr;
+        }
+      }
       if (!response?.newCascadeId) {
         throw new Error("No conversation ID returned by the server.");
       }
