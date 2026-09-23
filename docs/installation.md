@@ -5,8 +5,8 @@ Windows, macOS & Linux, Antigravity 2.x.
 ## Install
 
 ### Windows
-1. Download `BetterGravity-Installer-<version>.exe` from the
-   [releases page](https://github.com/YashjitPal/BetterGravity/releases).
+1. Download `BetterGravity-Installer-<version>-<arch>.exe` (or native `BetterGravity-Installer-Windows-<arch>.exe`) from the
+   [releases page](https://github.com/YashjitPal/BetterGravity/releases). Choose **x64** for Intel/AMD processors or **arm64** for Snapdragon X Elite and Windows on ARM devices.
 2. Run it. Windows SmartScreen will warn, because the build is not code-signed
    yet — choose **More info → Run anyway**.
 3. The installer finds Antigravity on its own. Press **Install**.

@@ -1,7 +1,40 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-20T01:03:00.505Z",
+  "generatedAt": "2026-09-20T10:45:25.314Z",
   "entries": [
+    {
+      "id": "catppuccin-accent",
+      "kind": "plugin",
+      "name": "Catppuccin Accent",
+      "description": "Context-aware dynamic accent color switcher for Catppuccin themes. Only appears when Catppuccin is active.",
+      "version": "2.0.0",
+      "author": "RedPanda-Craft",
+      "source": "https://github.com/YashjitPal/BetterGravity",
+      "path": "community/plugins/catppuccin-accent",
+      "bytes": 26285,
+      "files": [
+        {
+          "name": "index.js",
+          "bytes": 19625,
+          "sha256": "c1442f67915a8bf588695accfea2cb34279b647f3ef401614c721143990d3705"
+        },
+        {
+          "name": "plugin.json",
+          "bytes": 337,
+          "sha256": "07e49e805f4512b75eb00a379d8676ba2cdfd9e1433d9619fe4c992764c9ac32"
+        },
+        {
+          "name": "README.md",
+          "bytes": 831,
+          "sha256": "eee664505aab2ca0d17b3cf0d1a88cefc4c419e9b77b261cc635efacd6c37b4b"
+        },
+        {
+          "name": "styles/accent.css",
+          "bytes": 5492,
+          "sha256": "77890b11c9d91e986e23a8430ec0274f0cc00801772d0d5be41f6ae5b6d26b5b"
+        }
+      ]
+    },
     {
       "id": "compact",
       "kind": "plugin",
@@ -47,7 +80,7 @@
         "windows"
       ],
       "path": "community/plugins/computer-use",
-      "bytes": 986063,
+      "bytes": 986199,
       "files": [
         {
           "name": "assets/agent-cursor.png",
@@ -116,13 +149,13 @@
         },
         {
           "name": "bin/windows-screen-overlay.cs",
-          "bytes": 57315,
-          "sha256": "6f46232ddc1e9f9b345a9fdaa4ee6d5fbdbe4695cb1fa129925e69d17146a145"
+          "bytes": 57316,
+          "sha256": "de26ccef41e1c6040b585c6823ba8e1405171c197a862b440becbae9be440259"
         },
         {
           "name": "bin/windows-screen-overlay.exe",
           "bytes": 42496,
-          "sha256": "0fa08c7f4d2065853b312fa2295b4b21025e6bc3b4e22eadede1adff8032e20c"
+          "sha256": "1922c15d218a000563f326c786e7c4f62a0164264fd5153d06ecac32e876f2cb"
         },
         {
           "name": "core/approval-manager.js",
@@ -196,8 +229,8 @@
         },
         {
           "name": "mcp-server.cjs",
-          "bytes": 5016,
-          "sha256": "c2c237c4c007f9e04f68d7debf563371925ad0739d67f0b48586fae27824b560"
+          "bytes": 5151,
+          "sha256": "dd614d1d3589f812200a64f2c665a8d93c76993e6d920f7a6a892addbfbc652f"
         },
         {
           "name": "package.json",
@@ -288,12 +321,12 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/fork-chat",
-      "bytes": 68312,
+      "bytes": 70881,
       "files": [
         {
           "name": "index.js",
-          "bytes": 54009,
-          "sha256": "22f00df93dde9cf9927a38396badc007316826ec8fc173f1e3d3abed48e2d62b"
+          "bytes": 56578,
+          "sha256": "e67761ac72d84c6627606f56d3aa9f1c4da05205edd011197baf6b2614c6cd9c"
         },
         {
           "name": "plugin.json",
@@ -793,7 +826,7 @@
       "author": "Yashjit Pal",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/pets",
-      "bytes": 1508433,
+      "bytes": 1507945,
       "files": [
         {
           "name": "assets/rocky.webp",
@@ -802,8 +835,8 @@
         },
         {
           "name": "index.js",
-          "bytes": 260841,
-          "sha256": "d2dfe88e5be1e030a01f89dff0084d3b97fd9fd815bdfcdc53f550ebb5938b59"
+          "bytes": 260353,
+          "sha256": "5c7d52c637fcf6ea3ebcd659d6ea8bb0ded71b68d4ccc8dd812e686c12d76f13"
         },
         {
           "name": "plugin.json",
@@ -984,17 +1017,17 @@
       "id": "catppuccin-turbo.css",
       "kind": "theme",
       "name": "Catppuccin Turbo",
-      "description": "Ultra-fast, zero-latency Catppuccin Mocha theme. Removes blur/shadow GPU lag, neutralizes sluggish entrance keyframes, and applies sleek, high-contrast dark tones.",
-      "version": "1.0.1",
-      "author": "Antigravity",
+      "description": "Ultra-fast, host-aligned Catppuccin theme for Antigravity 2.0 / BetterGravity 3.0 with Mocha & Latte support.",
+      "version": "2.0.0",
+      "author": "RedPanda-Craft",
       "source": "https://github.com/catppuccin/catppuccin",
       "path": "community/themes/catppuccin-turbo.css",
-      "bytes": 8452,
+      "bytes": 46277,
       "files": [
         {
           "name": "catppuccin-turbo.css",
-          "bytes": 8452,
-          "sha256": "b342630527b99ec3b5f8a6433634a0f36e4089de4fbffdde8c6b841475d39475"
+          "bytes": 46277,
+          "sha256": "c05e4867a2b982a917e74642d835cb27c11bfa5ac699a77c9a307718b038a17b"
         }
       ]
     },

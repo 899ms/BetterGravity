@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 
 const workspace = resolve(import.meta.dirname, "..");
 const outDir = resolve(workspace, "dist-native");
-const winPublishDir = resolve(outDir, "windows-publish");
 const lightPublishDir = resolve(outDir, "windows-light");
 
 mkdirSync(outDir, { recursive: true });
@@ -70,25 +69,42 @@ const manifest = {
 };
 writeFileSync(resolve(workspace, "apps/installer-windows/Patcher/manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
-// 1. Build self-contained single-file executable
-execSync(
-  `dotnet publish apps/installer-windows/BetterGravityInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "${winPublishDir}"`,
-  { cwd: workspace, stdio: "inherit" }
-);
-
-const exeSrc = resolve(winPublishDir, "BetterGravityInstaller.exe");
-const exeDest = resolve(outDir, "BetterGravity-Installer-Windows-x64.exe");
-
-if (existsSync(exeSrc)) {
-  cpSync(exeSrc, exeDest);
+// Determine target architectures: default to both x64 and arm64
+const args = process.argv.slice(2);
+let targetArches = ["x64", "arm64"];
+if (args.includes("--x64-only") || args.includes("--x64")) {
+  targetArches = ["x64"];
+} else if (args.includes("--arm64-only") || args.includes("--arm64")) {
+  targetArches = ["arm64"];
 }
 
-// Create standalone zip
-const standaloneZip = resolve(outDir, "BetterGravity-Installer-Windows-x64.zip");
-execSync(
-  `powershell -NoProfile -Command "Compress-Archive -Path '${winPublishDir}\\BetterGravityInstaller.exe' -DestinationPath '${standaloneZip}' -Force"`,
-  { cwd: workspace, stdio: "inherit" }
-);
+// 1. Build self-contained single-file executable for each architecture
+for (const arch of targetArches) {
+  const rid = `win-${arch}`;
+  const winPublishDir = resolve(outDir, `windows-publish-${arch}`);
+
+  execSync(
+    `dotnet publish apps/installer-windows/BetterGravityInstaller.csproj -c Release -r ${rid} --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "${winPublishDir}"`,
+    { cwd: workspace, stdio: "inherit" }
+  );
+
+  const exeSrc = resolve(winPublishDir, "BetterGravityInstaller.exe");
+  const exeDest = resolve(outDir, `BetterGravity-Installer-Windows-${arch}.exe`);
+
+  if (existsSync(exeSrc)) {
+    cpSync(exeSrc, exeDest);
+  }
+
+  // Create standalone zip
+  const standaloneZip = resolve(outDir, `BetterGravity-Installer-Windows-${arch}.zip`);
+  execSync(
+    `powershell -NoProfile -Command "Compress-Archive -Path '${winPublishDir}\\BetterGravityInstaller.exe' -DestinationPath '${standaloneZip}' -Force"`,
+    { cwd: workspace, stdio: "inherit" }
+  );
+
+  // Clean up intermediate staging directory
+  rmSync(winPublishDir, { recursive: true, force: true });
+}
 
 // 2. Build lightweight framework-dependent package (<1MB)
 execSync(
@@ -106,6 +122,5 @@ execSync(
   { cwd: workspace, stdio: "inherit" }
 );
 
-// Clean up intermediate staging directories
-rmSync(winPublishDir, { recursive: true, force: true });
+// Clean up intermediate staging directory
 rmSync(lightPublishDir, { recursive: true, force: true });

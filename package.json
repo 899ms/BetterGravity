@@ -18,6 +18,8 @@
     "build:installer:mac": "pnpm build && pnpm --filter @bettergravity/installer build:desktop:mac",
     "build:installer:linux": "pnpm build && pnpm --filter @bettergravity/installer build:desktop:linux",
     "build:installer:native:win": "node scripts/build-native-win.mjs",
+    "build:installer:native:win:x64": "node scripts/build-native-win.mjs --x64",
+    "build:installer:native:win:arm64": "node scripts/build-native-win.mjs --arm64",
     "build:installer:native:mac": "node scripts/build-native-mac.mjs",
     "build:installer:native:linux": "node scripts/build-native-linux.mjs",
     "start:installer": "pnpm --filter @bettergravity/installer start:desktop",

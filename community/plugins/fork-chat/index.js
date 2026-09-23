@@ -298,7 +298,7 @@ async function forkFromSnapshot(agentService, request) {
       baseTrajectoryIdentifier: {
         identifier: { case: "trajectory", value: snapshot }
       },
-      workspaceUris,
+      workspaceUris: projectEnvConfig ? undefined : workspaceUris,
       projectEnvConfig,
       agentScriptItem: metadata.agentScript,
       customAgentSpec: metadata.staticConfig,
@@ -366,9 +366,10 @@ async function forkConversation(agentService, request) {
     return await agentService.forkConversation(request);
   } catch (error) {
     // Some host versions require the entire source to be idle even when the
-    // requested prefix finished long ago. Other failures must remain visible.
+    // requested prefix finished long ago. Other host limitations (e.g. conversations
+    // that invoked subagents) cannot be forked natively and must fall back to snapshot.
     const message = error?.message || String(error);
-    if (!/must be fully idle|conversation.{0,100}(?:in progress|is busy)/i.test(message)) throw error;
+    if (!/must be fully idle|conversation.{0,100}(?:in progress|is busy)|invoked subagents|subagent|failed to create forked conversation/i.test(message)) throw error;
     return forkFromSnapshot(agentService, request);
   }
 }
@@ -477,9 +478,14 @@ async function runFork(sourceCascadeId, forkAtStepIndex, targetForkWorkspace, ti
       });
 
     } catch (error) {
+      const rawMsg = error?.message || String(error);
+      let errorBody = rawMsg;
+      if (/not a valid branch name|check-ref-format/i.test(rawMsg)) {
+        errorBody = "Git branch names cannot contain spaces. Please rename your workspace folder or fork in current workspace.";
+      }
       plugin.ui.toast({
         title: "Failed to fork conversation",
-        body: error?.message || String(error),
+        body: errorBody,
         kind: "error",
         duration: 6000
       });
@@ -515,12 +521,14 @@ function openTurnForkPopover(button, cascadeId, stepIndex) {
 
   const popover = document.createElement("div");
   popover.className = "bettergravity-fork-popover";
+  popover.setAttribute("data-bettergravity-popover", "true");
   popover.setAttribute("role", "menu");
 
   const makeItem = (label, iconSvg, target) => {
     const item = document.createElement("button");
     item.type = "button";
     item.setAttribute("role", "menuitem");
+    item.setAttribute("data-fork-popover-item", "true");
     item.className = "bettergravity-fork-popover-item";
     item.innerHTML = `
       <span class="bettergravity-fork-popover-icon">${iconSvg}</span>
@@ -633,10 +641,8 @@ function forkPointFromBar(bar) {
   // Older host versions expose only a response's step metadata. Use the final
   // step, never an earlier step or the -1 sentinel for copying the entire chat.
   const source = lastStep.metadata?.sourceTrajectoryStepInfo;
-  if (source && (!source.cascadeId || source.cascadeId === contextId)) {
-    if (Number.isSafeInteger(source.stepIndex) && source.stepIndex >= 0) {
-      return { sourceCascadeId: contextId, forkAtStepIndex: source.stepIndex };
-    }
+  if (source && Number.isSafeInteger(source.stepIndex) && source.stepIndex >= 0) {
+    return { sourceCascadeId: contextId, forkAtStepIndex: source.stepIndex };
   }
   return undefined;
 }
@@ -659,6 +665,16 @@ function decorateMenus(root = document.body) {
   const menuItems = root.matches?.('[role="menuitem"]') ? [root, ...children] : children;
   for (let i = 0; i < menuItems.length; i += 1) {
     const item = menuItems[i];
+    // Never hijack turn popovers, plugin modals, or turn-level fork targets
+    if (
+      item.closest(".bettergravity-fork-popover") ||
+      item.closest(".bettergravity-fork-modal") ||
+      item.hasAttribute("data-fork-popover-item") ||
+      item.querySelector('[data-testid="fork-target-option"]') ||
+      item.closest('[data-testid="fork-target-option"]')
+    ) {
+      continue;
+    }
     const text = (item.textContent || "").trim();
 
     // 1. Reframe parent "Fork" menu item in the three dot menu as "Copy session"
@@ -764,8 +780,15 @@ function decorateTurnBar(bar) {
     event.stopPropagation();
     const point = forkPointFromBar(bar);
     if (!point) {
-      const cascadeId = bar.closest('[data-testid="conversation-view"]')?.getAttribute("data-cascade-id");
-      void runFork(cascadeId, undefined, settings.defaultTarget);
+      plugin.ui.toast({
+        title: "Fork point unavailable",
+        body: "Could not identify the end of this response. Please reopen the conversation and try again.",
+        kind: "warning"
+      });
+      return;
+    }
+    if (settings.quickFork) {
+      void runFork(point.sourceCascadeId, point.forkAtStepIndex, Number(settings.defaultTarget) || 1);
       return;
     }
     openTurnForkPopover(button, point.sourceCascadeId, point.forkAtStepIndex);

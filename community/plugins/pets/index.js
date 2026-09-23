@@ -3234,7 +3234,7 @@ const settings = plugin.settings.define({
     label: "Where it lives",
     description:
       "On the desktop, in a window of its own, the way Codex does it — so it stays with you when Antigravity is behind something else. Inside the window if your system will not give it one.",
-    default: typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") ? "window" : "desktop",
+    default: "desktop",
     options: [
       { value: "desktop", label: "On the desktop" },
       { value: "window", label: "Inside Antigravity" }
@@ -5208,9 +5208,7 @@ const HELLO_TIMEOUT_MS = 4000;
 
 /** The pet on the desktop, or null when the window could not be opened. */
 async function desktopSurface(data) {
-  // On Windows, frameless transparent desktop overlays can experience DWM surface issues.
-  // Unless the user explicitly configured "desktop" in settings, keep the pet inside the window.
-  if (typeof navigator !== "undefined" && navigator.userAgent.includes("Windows") && settings.home !== "desktop") {
+  if (settings.home !== "desktop") {
     return null;
   }
 
@@ -5868,10 +5866,9 @@ async function start() {
 
   const data = { config: configOf(), entries: activity, working, at: position, activityPillsVisible, badgeCorner };
 
-  const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
   const wantsDesktop = settings.home === "desktop";
   const next =
-    (!wantsDesktop || (isWindows && !wantsDesktop))
+    !wantsDesktop
       ? windowSurface(data)
       : ((await desktopSurface(data)) ?? windowSurface(data));
 

@@ -52,12 +52,13 @@
       "package.json"
     ],
     "win": {
-      "artifactName": "BetterGravity-Installer-${version}.${ext}",
+      "artifactName": "BetterGravity-Installer-${version}-${arch}.${ext}",
       "target": [
         {
           "target": "portable",
           "arch": [
-            "x64"
+            "x64",
+            "arm64"
           ]
         }
       ],

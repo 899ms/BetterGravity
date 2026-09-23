@@ -400,7 +400,7 @@ namespace ComputerUseOverlay {
             animTimer.Start();
 
             idleFadeTimer = new DispatcherTimer();
-            idleFadeTimer.Interval = TimeSpan.FromSeconds(4);
+            idleFadeTimer.Interval = TimeSpan.FromSeconds(10);
             idleFadeTimer.Tick += (s, e) => {
                 idleFadeTimer.Stop();
                 FadeOut();

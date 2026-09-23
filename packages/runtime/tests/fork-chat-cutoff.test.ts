@@ -17,7 +17,7 @@ let navigate: ReturnType<typeof vi.fn>;
 let getHistory: ReturnType<typeof vi.fn>;
 let startCascade: ReturnType<typeof vi.fn>;
 let annotations: ReturnType<typeof vi.fn>;
-let helpers: { decorateTurnBar(bar: HTMLElement): void; runFork(id: string, index: unknown, target: number): Promise<void> };
+let helpers: { decorateTurnBar(bar: HTMLElement): void; runFork(id: string, index: unknown, target: number): Promise<void>; decorateMenus?: (root?: HTMLElement) => void };
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -78,7 +78,7 @@ function mount(turns: Step[][], { id = "source", start = 100, withSlice = true }
 }
 
 function start(): void {
-  helpers = new Function("plugin", `${source}\nreturn { decorateTurnBar, runFork };`)({
+  helpers = new Function("plugin", `${source}\nreturn { decorateTurnBar, runFork, decorateMenus };`)({
     settings: { define: () => ({}), onChange: () => () => {} },
     ui: { contextMenu() {}, toast: (toast: { title: string; body: string }) => toasts.push(toast) },
     onDispose: (cleanup: () => void) => disposers.push(cleanup)
@@ -111,6 +111,30 @@ describe("forking through the selected response", () => {
     const search = navigate.mock.calls[0]![0].search;
     expect(search({ focused: "source", q: "old search", tab: "terminal", section: "old-project", keep: true }))
       .toEqual({ section: "fork-project", keep: true });
+  });
+
+  it("does not let decorateMenus hijack turn popover items or reset fork cutoff to -1", async () => {
+    const first = [step("userInput"), step(), step("generic"), step()];
+    const next = [step("userInput"), step()];
+    const { bars } = mount([first, next]);
+    start();
+    open(bars[0]!);
+
+    // Simulate menu decoration running while popover is in DOM (e.g. via MutationObserver or titlebar more click)
+    helpers.decorateMenus?.(document.body);
+
+    const items = document.querySelectorAll<HTMLButtonElement>(".bettergravity-fork-popover-item");
+    expect(items).toHaveLength(2);
+    expect(items[0]?.dataset.forkOptionDecorated).toBeUndefined();
+
+    await choose(1);
+
+    // fork must be called with the turn's exact cutoff (103), NOT -1
+    expect(fork).toHaveBeenCalledExactlyOnceWith({
+      sourceCascadeId: "source",
+      forkAtStepIndex: 103,
+      targetForkWorkspace: 1
+    });
   });
 
   it("uses the current branch's slice positions instead of its inherited source indices", async () => {
@@ -260,7 +284,7 @@ describe("forking history while the server reports ongoing work", () => {
     expect(copy.trajectoryId).toBe("source-trajectory");
     expect(copy.battleModeInfos).toEqual([]);
     expect(JSON.stringify(copy)).not.toContain("future");
-    expect(request.workspaceUris).toEqual(["file:///source/workspace"]);
+    expect(request.workspaceUris).toBeUndefined();
     expect(request.projectEnvConfig).toEqual({ projectId: "source-project", target: { case: "environmentId", value: "source-environment" } });
     expect(request.cascadeId).not.toBe("source");
     expect(history).toEqual(before);
@@ -307,10 +331,39 @@ describe("forking history while the server reports ongoing work", () => {
     await helpers.runFork("source", -1, 1);
     const request = startCascade.mock.calls[0]![0];
     expect(request.projectEnvConfig).toBeUndefined();
+    expect(request.workspaceUris).toEqual(["file:///source/workspace"]);
     expect(request.baseTrajectoryIdentifier.identifier.value.steps.map((s: Step) => s.step)).toEqual(steps.map(s => s.step));
     expect(request.baseTrajectoryIdentifier.identifier.value.steps.at(-1).status).toBe(6);
     expect(steps.at(-1)!.status).toBe(8);
     expect(navigate).toHaveBeenCalledOnce();
+  });
+
+  it("falls back to snapshot when native fork fails due to invoked subagents", async () => {
+    const selected = [step("userInput"), step()];
+    const { bars } = mount([selected], { start: 0 });
+    getHistory.mockResolvedValue(historyFor(selected));
+    fork.mockRejectedValueOnce(new Error("[internal] internal: failed to create forked conversation: forking is not supported for conversations that have invoked subagents (error ID: 1234)"));
+    start();
+    open(bars[0]!);
+    await choose(1);
+
+    expect(getHistory).toHaveBeenCalledOnce();
+    expect(startCascade).toHaveBeenCalledOnce();
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(toasts.some(toast => /Failed/.test(toast.title))).toBe(false);
+  });
+
+  it("falls back to current workspace when shared worktree branch name has spaces or is invalid", async () => {
+    const selected = [step("userInput"), step()];
+    const { bars } = mount([selected], { start: 0 });
+    fork.mockRejectedValueOnce(new Error("fatal: 'Willow Code-fork-20260920-1305-d9a02cf5' is not a valid branch name hint: See 'man git check-ref-format' exit status 255"));
+    start();
+    open(bars[0]!);
+    await choose(2);
+
+    expect(fork).toHaveBeenCalledTimes(2);
+    expect(fork).toHaveBeenLastCalledWith({ sourceCascadeId: "source", forkAtStepIndex: 1, targetForkWorkspace: 1 });
+    expect(toasts.some(t => t.title === "Worktree branch unavailable")).toBe(true);
   });
 
   it("does not copy a selected response that is still being written", async () => {
