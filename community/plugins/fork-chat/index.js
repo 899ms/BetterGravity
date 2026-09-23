@@ -331,7 +331,7 @@ async function forkFromSnapshot(agentService, request) {
     });
   } catch (worktreeErr) {
     const wtMsg = worktreeErr?.message || String(worktreeErr);
-    if (/not a valid branch name|check-ref-format|failed to create worktree|vcs unknown|cannot clone workspace|no git repository/i.test(wtMsg)) {
+    if (/not a valid branch name|check-ref-format|failed to create worktree|vcs unknown|cannot clone workspace/i.test(wtMsg)) {
       plugin.ui.toast({
         title: "Worktree branch unavailable",
         body: "Git worktree requires a valid repository. Forking into current workspace instead...",
@@ -430,7 +430,7 @@ async function runFork(sourceCascadeId, forkAtStepIndex, targetForkWorkspace, ti
         });
       } catch (forkErr) {
         const errMsg = forkErr?.message || String(forkErr);
-        if (target === 2 && /not a valid branch name|check-ref-format|failed to create worktree|vcs unknown|cannot clone workspace|no git repository/i.test(errMsg)) {
+        if (target === 2 && /not a valid branch name|check-ref-format|failed to create worktree|vcs unknown|cannot clone workspace/i.test(errMsg)) {
           plugin.ui.toast({
             title: "Worktree branch unavailable",
             body: "Git worktree requires a valid repository. Forking into current workspace instead...",
