@@ -198,13 +198,27 @@
     // 6. Direct Studio & Gemini Host Runtime Tokens
     root.style.setProperty("--studio-surface", colors.base);
     root.style.setProperty("--gemini-surface", colors.surface0);
-    root.style.setProperty("--gemini-switch-track", isDark ? "#171717" : colors.mantle);
+    root.style.setProperty("--gemini-surface-hover", colors.surface1);
+    root.style.setProperty("--gemini-trigger-hover", colors.surface1);
+    root.style.setProperty("--gemini-control-hover", colors.surface1);
+    root.style.setProperty("--gemini-separator", colors.surface0);
+    root.style.setProperty("--gemini-switch-track", colors.crust);
     root.style.setProperty("--gemini-switch-slider", colors.surface0);
     root.style.setProperty("--gemini-body-text", colors.text);
     root.style.setProperty("--gemini-text", colors.text);
+    root.style.setProperty("--gemini-text-trigger", colors.subtext0);
+    root.style.setProperty("--gemini-text-trigger-hover", colors.text);
+    root.style.setProperty("--gemini-text-dim", colors.subtext0);
     root.style.setProperty("--gemini-page-bg", colors.base);
     root.style.setProperty("--gemini-bubble-bg", colors.surface0);
     root.style.setProperty("--gemini-composer-bg", colors.surface0);
+    root.style.setProperty("--gemini-composer-placeholder", colors.overlay0);
+    root.style.setProperty("--gemini-inline-code-bg", colors.surface0);
+    root.style.setProperty("--gemini-inline-code-text", colors[accentKey] || colors.peach);
+    root.style.setProperty("--gemini-link", colors.blue);
+    root.style.setProperty("--gemini-send-bg", accentHex);
+    root.style.setProperty("--gemini-send-bg-hover", accentHex);
+    root.style.setProperty("--gemini-home-glow-accent", glowColor);
 
     // 7. Native Window Controls Overlay (Electron Windows TitleBar)
     try {
@@ -245,8 +259,12 @@
       "--bettergravity-surface", "--bettergravity-border", "--bettergravity-text",
       "--bettergravity-row-hover", "--primary", "--primary-foreground",
       "--background", "--foreground", "--secondary", "--muted", "--border", "--card", "--sidebar",
-      "--studio-surface", "--gemini-surface", "--gemini-switch-track", "--gemini-switch-slider",
-      "--gemini-body-text", "--gemini-text", "--gemini-page-bg", "--gemini-bubble-bg", "--gemini-composer-bg"
+      "--studio-surface", "--gemini-surface", "--gemini-surface-hover", "--gemini-trigger-hover",
+      "--gemini-control-hover", "--gemini-separator", "--gemini-switch-track", "--gemini-switch-slider",
+      "--gemini-body-text", "--gemini-text", "--gemini-text-trigger", "--gemini-text-trigger-hover",
+      "--gemini-text-dim", "--gemini-page-bg", "--gemini-bubble-bg", "--gemini-composer-bg",
+      "--gemini-composer-placeholder", "--gemini-inline-code-bg", "--gemini-inline-code-text",
+      "--gemini-link", "--gemini-send-bg", "--gemini-send-bg-hover", "--gemini-home-glow-accent"
     ];
     props.forEach(p => root.style.removeProperty(p));
     ACCENT_KEYS.forEach(acc => root.style.removeProperty(`--ctp-${acc.id}`));
@@ -448,6 +466,85 @@
     }
   }
 
+  const CATPPUCCIN_ONBOARDING_KEY = "bettergravity:catppuccin:onboarding_v1";
+  let activeOnboardingTimer = null;
+  let activeOnboardingCallout = null;
+
+  function triggerCatppuccinOnboarding() {
+    try {
+      if (localStorage.getItem(CATPPUCCIN_ONBOARDING_KEY) === "true") return;
+    } catch (_) {
+      return;
+    }
+
+    activeOnboardingTimer = setTimeout(() => {
+      const btn = document.querySelector('[data-bettergravity-button="Accent"]');
+      if (!btn) return;
+
+      // Avoid collision with other active callouts
+      if (document.querySelector(".bg-onboarding-callout")) {
+        activeOnboardingTimer = setTimeout(triggerCatppuccinOnboarding, 3500);
+        return;
+      }
+
+      const dismiss = () => {
+        try {
+          localStorage.setItem(CATPPUCCIN_ONBOARDING_KEY, "true");
+        } catch (_) {}
+        callout.classList.remove("is-visible");
+        activeOnboardingCallout = null;
+        setTimeout(() => callout.remove(), 250);
+      };
+
+      btn.addEventListener("click", dismiss, { once: true });
+
+      const callout = document.createElement("div");
+      callout.className = "bg-onboarding-callout";
+      callout.setAttribute("data-no-drag", "true");
+      callout.innerHTML = `
+        <div class="bg-callout-caret"></div>
+        <div class="bg-callout-header">
+          <span class="bg-callout-icon">🎨</span>
+          <span class="bg-callout-title" style="color: var(--catppuccin-accent, #b4befe)">Catppuccin Ready</span>
+        </div>
+        <div class="bg-callout-body">
+          Theme active. Click here to customize flavor palette, accent colors & styles!
+        </div>
+        <div class="bg-callout-footer">
+          <button type="button" class="bg-callout-btn" data-no-drag="true">Got it</button>
+        </div>
+      `;
+
+      document.body.appendChild(callout);
+      activeOnboardingCallout = callout;
+
+      const rect = btn.getBoundingClientRect();
+      const width = 240;
+      let left = rect.left + rect.width / 2 - width / 2;
+      left = Math.max(12, Math.min(window.innerWidth - width - 12, left));
+      callout.style.top = `${rect.bottom + 8}px`;
+      callout.style.left = `${left}px`;
+
+      const caret = callout.querySelector(".bg-callout-caret");
+      if (caret) {
+        const caretLeft = Math.max(8, Math.min(width - 20, rect.left + rect.width / 2 - left - 6));
+        caret.style.left = `${caretLeft}px`;
+      }
+
+      callout.querySelector(".bg-callout-btn")?.addEventListener("click", dismiss);
+
+      requestAnimationFrame(() => {
+        callout.classList.add("is-visible");
+      });
+
+      activeOnboardingTimer = setTimeout(() => {
+        if (document.body.contains(callout)) {
+          dismiss();
+        }
+      }, 10000);
+    }, 800);
+  }
+
   function mountButton() {
     if (buttonHandle) return;
     try {
@@ -461,6 +558,7 @@
       // Restore persisted flavor & accent on load
       const config = getSavedConfig();
       applyConfig(config.flavor, config.accent, false);
+      triggerCatppuccinOnboarding();
     } catch (e) {
       plugin.log?.warn?.("Catppuccin Accent button mount failed:", e);
     }
@@ -488,11 +586,21 @@
     }
   }
 
+  function isUserTyping() {
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName?.toLowerCase();
+    if (tag === "input" || tag === "textarea") return true;
+    if (el.isContentEditable || el.closest?.('[contenteditable="true"]')) return true;
+    return false;
+  }
+
   // Initial synchronization
   syncLifecycle();
 
   // Observer for dynamic theme switching
   observer = new MutationObserver(() => {
+    if (isUserTyping()) return;
     syncLifecycle();
   });
   observer.observe(document.head, { childList: true, subtree: true, attributes: true });
@@ -501,11 +609,102 @@
   document.addEventListener("click", handleOutsideClick, true);
   window.addEventListener("keydown", handleKeydown, true);
 
+  // ==========================================================================
+  // Composer Focus & Glow Stabilization (Zero Background Click Thrashing)
+  // ==========================================================================
+  let isComposerFocused = false;
+  let composerBlurTimer = null;
+
+  function getComposerCard() {
+    return document.querySelector(
+      '.bg-chat-composer, [data-testid="chat-input-container"], [data-testid="agent-input-box"] > .rounded-2xl.bg-card-border > .bg-card:not([data-mention-menu]), [data-testid="agent-input-box"] .bg-card:not([data-mention-menu])'
+    );
+  }
+
+  function triggerComposerBreath(card) {
+    if (!card) card = getComposerCard();
+    if (!card) return;
+    card.classList.remove("bg-composer-breathe-1x", "bg-composer-settled");
+    requestAnimationFrame(() => {
+      card.classList.add("bg-composer-breathe-1x");
+    });
+  }
+
+  function handleComposerFocus() {
+    if (composerBlurTimer) {
+      clearTimeout(composerBlurTimer);
+      composerBlurTimer = null;
+    }
+    if (!isComposerFocused) {
+      isComposerFocused = true;
+      const card = getComposerCard();
+      triggerComposerBreath(card);
+    }
+  }
+
+  function handleComposerBlur() {
+    if (composerBlurTimer) clearTimeout(composerBlurTimer);
+    // Debounce 160ms: ignore micro-blur from background clicks/host focus keeper
+    composerBlurTimer = setTimeout(() => {
+      isComposerFocused = false;
+      const card = getComposerCard();
+      if (card) {
+        card.classList.remove("bg-composer-breathe-1x", "bg-composer-settled");
+      }
+    }, 160);
+  }
+
+  function handleGlobalPointerDown(e) {
+    const composerBox = e.target?.closest?.('[data-testid="agent-input-box"], .bg-chat-composer, [data-testid="chat-input-container"]');
+    if (composerBox) {
+      if (composerBlurTimer) {
+        clearTimeout(composerBlurTimer);
+        composerBlurTimer = null;
+      }
+      isComposerFocused = true;
+      const card = getComposerCard();
+      triggerComposerBreath(card);
+    }
+  }
+
+  function handleGlobalFocusIn(e) {
+    if (e.target?.closest?.('[data-testid="agent-input-box"], .bg-chat-composer, [data-testid="chat-input-container"]')) {
+      handleComposerFocus();
+    }
+  }
+
+  function handleGlobalFocusOut(e) {
+    if (e.target?.closest?.('[data-testid="agent-input-box"], .bg-chat-composer, [data-testid="chat-input-container"]')) {
+      handleComposerBlur();
+    }
+  }
+
+  // Clean any old lingering class on startup
+  const initialCard = getComposerCard();
+  if (initialCard) {
+    initialCard.classList.remove("bg-composer-settled");
+  }
+
+  document.addEventListener("pointerdown", handleGlobalPointerDown, true);
+  document.addEventListener("focusin", handleGlobalFocusIn, true);
+  document.addEventListener("focusout", handleGlobalFocusOut, true);
+
   // Plugin teardown
   plugin.onDispose(() => {
     observer?.disconnect();
     document.removeEventListener("click", handleOutsideClick, true);
     window.removeEventListener("keydown", handleKeydown, true);
+    document.removeEventListener("pointerdown", handleGlobalPointerDown, true);
+    document.removeEventListener("focusin", handleGlobalFocusIn, true);
+    document.removeEventListener("focusout", handleGlobalFocusOut, true);
+    if (composerBlurTimer) clearTimeout(composerBlurTimer);
+    if (activeOnboardingTimer) clearTimeout(activeOnboardingTimer);
+    if (activeOnboardingCallout) activeOnboardingCallout.remove();
+    document.querySelectorAll(".bg-onboarding-callout").forEach((el) => el.remove());
+    const card = getComposerCard();
+    if (card) {
+      card.classList.remove("bg-composer-breathe-1x", "bg-composer-settled");
+    }
     unmountButton();
   });
 })();
