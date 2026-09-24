@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-24T21:53:00.374Z",
+  "generatedAt": "2026-09-24T22:10:50.300Z",
   "entries": [
     {
       "id": "catppuccin-accent",
@@ -994,12 +994,12 @@
       "author": "RedPanda-Craft",
       "source": "https://github.com/RedPanda-Craft/antigravity-timeslip",
       "path": "community/plugins/timeslip",
-      "bytes": 209119,
+      "bytes": 209643,
       "files": [
         {
           "name": "index.js",
-          "bytes": 160619,
-          "sha256": "d59ed7af013078af927864436fe8dc14ba451df67dff9b7039f56ab1828cd36f"
+          "bytes": 161143,
+          "sha256": "6d07636a244a63c91b4ecb59fc76dac762120ad20ed63e6ebbf678cda2a18d8a"
         },
         {
           "name": "plugin.json",
