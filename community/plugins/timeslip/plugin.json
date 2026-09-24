@@ -3,6 +3,7 @@
   "description": "Interactive conversation timeline & context cards for Antigravity.",
   "version": "1.0.0",
   "author": "RedPanda-Craft",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "main": "index.js",
   "styles": [
     "styles/timeline.css"
