@@ -2069,7 +2069,14 @@
 
   function triggerTimeslipOnboarding() {
     try {
-      if (localStorage.getItem(TIMESLIP_ONBOARDING_KEY) === "true") return;
+      let seen = false;
+      try {
+        seen = plugin?.storage?.get?.("onboarding_seen", false);
+      } catch (_) {}
+      if (!seen) {
+        seen = localStorage.getItem(TIMESLIP_ONBOARDING_KEY) === "true";
+      }
+      if (seen) return;
     } catch (_) {
       return;
     }
@@ -2086,7 +2093,18 @@
         return;
       }
 
+      // Mark as seen immediately so it will not recur on abrupt close
+      try {
+        plugin?.storage?.set?.("onboarding_seen", true);
+      } catch (_) {}
+      try {
+        localStorage.setItem(TIMESLIP_ONBOARDING_KEY, "true");
+      } catch (_) {}
+
       const dismiss = () => {
+        try {
+          plugin?.storage?.set?.("onboarding_seen", true);
+        } catch (_) {}
         try {
           localStorage.setItem(TIMESLIP_ONBOARDING_KEY, "true");
         } catch (_) {}
