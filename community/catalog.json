@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-24T22:10:46.074Z",
+  "generatedAt": "2026-09-25T03:08:43.520Z",
   "entries": [
     {
       "id": "catppuccin-accent",
@@ -982,6 +982,44 @@
           "name": "styles/pet.css",
           "bytes": 4024,
           "sha256": "5623f9391aa7467dd293563e942e59e59e8887ddfd572eeccdfddd1ac066c68d"
+        }
+      ]
+    },
+    {
+      "id": "timeslip",
+      "kind": "plugin",
+      "name": "Timeslip",
+      "description": "Interactive conversation timeline & context cards for Antigravity.",
+      "version": "1.0.0",
+      "author": "RedPanda-Craft",
+      "source": "https://github.com/RedPanda-Craft/antigravity-timeslip",
+      "path": "community/plugins/timeslip",
+      "bytes": 211563,
+      "files": [
+        {
+          "name": "index.js",
+          "bytes": 161143,
+          "sha256": "6d07636a244a63c91b4ecb59fc76dac762120ad20ed63e6ebbf678cda2a18d8a"
+        },
+        {
+          "name": "LICENSE",
+          "bytes": 1875,
+          "sha256": "bde77184f755aac5c571f4dd011fdc208721896f459e1cbdb9fc147404cb99ca"
+        },
+        {
+          "name": "plugin.json",
+          "bytes": 346,
+          "sha256": "bb686fe06a2ad469df85177e8b77ca4b415503924aba45e8aa223e2f62a29549"
+        },
+        {
+          "name": "README.md",
+          "bytes": 1087,
+          "sha256": "4d20ca0405d9e1aa2a2f05b5e1b8ed40d8270d2c9c2aebe7fc6bfb3c70632c38"
+        },
+        {
+          "name": "styles/timeline.css",
+          "bytes": 47112,
+          "sha256": "bbcf9494035ece0f0155fc95e65b8916e9c8b21aa8d23a7a6f1efe2c9aff3f30"
         }
       ]
     },
