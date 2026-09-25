@@ -1,6 +1,7 @@
+import path from "node:path";
 import { fs } from "./fs.js";
 import type { InstallationKind } from "../types.js";
-import { inspectInstallation, runOperation, type HostController } from "./index.js";
+import { RUNTIME_FILES, inspectInstallation, runOperation, type HostController } from "./index.js";
 import { antigravityProcessIds } from "./process.js";
 import { installationPaths } from "./paths.js";
 
@@ -38,6 +39,10 @@ export interface GuardianOptions {
   readonly closeHost?: HostController;
   readonly now?: () => number;
   readonly sleep?: (ms: number) => Promise<void>;
+  /** Out-of-installation directory holding recovery runtime files and/or pending marker. */
+  readonly recoverySource?: string | undefined;
+  /** Explicit runtime source directory override. */
+  readonly runtimeSource?: string | undefined;
 }
 
 export type GuardianOutcome =
@@ -87,16 +92,46 @@ export async function guard(options: GuardianOptions): Promise<GuardianOutcome> 
   let repatchDeadline: number | undefined;
   let waitingAnnounced = false;
 
+  const candidateRecovery =
+    options.recoverySource ||
+    (options.runtimeSource && fs.existsSync(options.runtimeSource) ? options.runtimeSource : undefined);
+
+  const hasRecovery = Boolean(
+    candidateRecovery &&
+      fs.existsSync(candidateRecovery) &&
+      RUNTIME_FILES.every((file) => fs.existsSync(path.join(candidateRecovery, file)))
+  );
+
+  let matchesGuardedTarget = true;
+  if (hasRecovery) {
+    try {
+      const markerFile = path.join(candidateRecovery!, "guardian-pending.json");
+      if (fs.existsSync(markerFile)) {
+        const marker = JSON.parse(fs.readFileSync(markerFile, "utf8"));
+        if (marker?.installationPath) {
+          matchesGuardedTarget = path.resolve(marker.installationPath) === path.resolve(installationPath);
+        }
+      }
+    } catch {}
+  }
+
   const settled = (kind: InstallationKind): GuardianOutcome =>
     kind === "patched" ? { kind: "already-patched" } : { kind: "no-update" };
 
   for (;;) {
     const state = inspectInstallation(installationPath);
-    const needsRepatch = state.kind === "needs-repatch" && state.nativePatchAvailable;
+    // When the host updates via in-app updater (e.g. Squirrel quitAndInstall),
+    // it replaces the resources directory entirely. As a result, _app.asar and
+    // in-installation runtime files are wiped, causing inspectInstallation to return
+    // kind === "detected" (unpatched).
+    // Because this guardian was explicitly spawned to guard this installation with
+    // staged recovery files, a stock bundle here means an update replaced the patch.
+    const isGuardedUpdate = (state.kind === "needs-repatch" || (state.kind === "detected" && hasRecovery && matchesGuardedTarget));
+    const needsRepatch = isGuardedUpdate && state.nativePatchAvailable;
 
     if (needsRepatch && repatchDeadline === undefined) {
       repatchDeadline = now() + repatchTimeoutMs;
-      log(`Antigravity ${state.antigravityVersion} replaced the patch.`);
+      log(`Antigravity ${state.antigravityVersion ?? "unknown"} replaced the patch.`);
     }
 
     const running = isHostRunning(installationPath);
@@ -104,12 +139,21 @@ export async function guard(options: GuardianOptions): Promise<GuardianOutcome> 
     if (needsRepatch && !running) {
       log("Reapplying.");
       try {
-        const runtimeSource = installationPaths(installationPath).runtimeCode;
+        const runtimeSource = (hasRecovery && matchesGuardedTarget)
+          ? candidateRecovery!
+          : (options.runtimeSource ?? installationPaths(installationPath).runtimeCode);
+
         await runOperation("update", installationPath, {
           runtimeSource,
           ...(options.closeHost ? { closeHost: options.closeHost } : {})
         });
         log("Reapplied successfully.");
+        if (candidateRecovery) {
+          try {
+            const markerFile = path.join(candidateRecovery, "guardian-pending.json");
+            if (fs.existsSync(markerFile)) fs.unlinkSync(markerFile);
+          } catch {}
+        }
         return { kind: "repatched", version: state.antigravityVersion };
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
@@ -153,9 +197,17 @@ export async function guard(options: GuardianOptions): Promise<GuardianOutcome> 
 export async function main(argv: readonly string[]): Promise<number> {
   const installationPath = argv[0];
   const logFile = argv[1];
+  let recoverySource = argv[2];
   if (!installationPath) {
-    console.error("Usage: repair.cjs <installationPath> [logFile]");
+    console.error("Usage: repair.cjs <installationPath> [logFile] [recoverySource]");
     return 2;
+  }
+
+  if (!recoverySource && logFile) {
+    const candidate = path.join(path.dirname(logFile), "recovery");
+    if (fs.existsSync(candidate)) {
+      recoverySource = candidate;
+    }
   }
 
   const log = (message: string) => {
@@ -169,7 +221,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   };
 
   try {
-    const outcome = await guard({ installationPath, log });
+    const outcome = await guard({ installationPath, log, ...(recoverySource ? { recoverySource } : {}) });
     return outcome.kind === "failed" ? 1 : 0;
   } catch (error) {
     log(`unexpected failure: ${error instanceof Error ? error.message : String(error)}`);

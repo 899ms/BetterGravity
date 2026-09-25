@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { inspectInstallation, installationPaths, runOperation } from "../src/native/index.js";
 import { guard } from "../src/native/repair.js";
@@ -23,6 +24,18 @@ const guardOptions = (overrides: Partial<Parameters<typeof guard>[0]> = {}) => (
   log: (message: string) => void logged.push(message),
   ...overrides
 });
+
+/** Answers in order, then holds the last answer. */
+const hostRunning = (answers: readonly boolean[]) => {
+  let index = 0;
+  return () => answers[Math.min(index++, answers.length - 1)] ?? false;
+};
+
+/** A clock that only moves while the guardian is sleeping. */
+const clock = () => {
+  let time = 0;
+  return { now: () => time, sleep: async (ms: number) => void (time += ms) };
+};
 
 beforeEach(async () => {
   fixture = await createFixture();
@@ -108,18 +121,6 @@ describe("guard", () => {
    * fifty seconds in and left the installation unpatched.
    */
   describe("when the updater relaunches Antigravity", () => {
-    /** Answers in order, then holds the last answer. */
-    const hostRunning = (answers: readonly boolean[]) => {
-      let index = 0;
-      return () => answers[Math.min(index++, answers.length - 1)] ?? false;
-    };
-
-    /** A clock that only moves while the guardian is sleeping. */
-    const clock = () => {
-      let time = 0;
-      return { now: () => time, sleep: async (ms: number) => void (time += ms) };
-    };
-
     // Closed for the initial wait, back up as the updater leaves it, then
     // closed again by the user.
     const relaunched = [false, true, true, true, false];
@@ -233,4 +234,51 @@ describe("guard", () => {
     expect(logged).toContain("Reapplying.");
     expect(logged).toContain("Reapplied successfully.");
   });
+
+  describe("when an in-app update wipes the resources folder completely", () => {
+    const simulateFullHostUpdate = async (version: string) => {
+      await writeHostArchive(installationPaths(fixture.root).currentAsar, version);
+      fs.rmSync(installationPaths(fixture.root).originalAsar, { force: true });
+      fs.rmSync(installationPaths(fixture.root).runtimeCode, { recursive: true, force: true });
+    };
+
+    it("reapplies using the recovery source when resources was wiped", async () => {
+      await simulateFullHostUpdate("2.16.0");
+      // Without recovery files, inspectInstallation reports stock detected
+      expect(inspectInstallation(fixture.root)).toMatchObject({ kind: "detected", antigravityVersion: "2.16.0" });
+
+      const marker = path.join(fixture.runtimeSource, "guardian-pending.json");
+      fs.writeFileSync(marker, JSON.stringify({ installationPath: fixture.root, timestamp: Date.now() }));
+
+      const outcome = await guard(guardOptions({ recoverySource: fixture.runtimeSource }));
+
+      expect(outcome).toEqual({ kind: "repatched", version: "2.16.0" });
+      expect(inspectInstallation(fixture.root)).toMatchObject({ kind: "patched", antigravityVersion: "2.16.0" });
+      expect(fs.existsSync(marker)).toBe(false);
+    });
+
+    it("waits for relaunched Antigravity to close before reapplying after full wipe", async () => {
+      await simulateFullHostUpdate("2.16.0");
+      const time = clock();
+
+      const marker = path.join(fixture.runtimeSource, "guardian-pending.json");
+      fs.writeFileSync(marker, JSON.stringify({ installationPath: fixture.root, timestamp: Date.now() }));
+
+      const outcome = await guard(
+        guardOptions({
+          recoverySource: fixture.runtimeSource,
+          watchTimeoutMs: 10,
+          repatchTimeoutMs: 10 * 60_000,
+          isHostRunning: hostRunning([false, true, true, false]),
+          now: time.now,
+          sleep: time.sleep
+        })
+      );
+
+      expect(outcome).toEqual({ kind: "repatched", version: "2.16.0" });
+      expect(inspectInstallation(fixture.root)).toMatchObject({ kind: "patched", antigravityVersion: "2.16.0" });
+      expect(logged.some((line) => line.includes("waiting for it to close"))).toBe(true);
+    });
+  });
 });
+

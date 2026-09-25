@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { logger } from "./logger.js";
 
+const RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs", "overlay.html"] as const;
+
 /**
  * Antigravity updates itself with electron-updater, which replaces app.asar
  * during an install that runs only after the application has quit. By then
@@ -27,8 +29,26 @@ export function spawnGuardian(runtimeCodeDirectory: string, logFile: string): bo
     installationPath = path.dirname(installationPath);
   }
 
+  const recoveryDir = path.join(path.dirname(logFile), "recovery");
   try {
-    const child = spawn(process.execPath, [script, installationPath, logFile], {
+    fs.mkdirSync(recoveryDir, { recursive: true });
+    for (const file of RUNTIME_FILES) {
+      const src = path.join(runtimeCodeDirectory, file);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, path.join(recoveryDir, file));
+      }
+    }
+    const markerFile = path.join(recoveryDir, "guardian-pending.json");
+    fs.writeFileSync(markerFile, JSON.stringify({ installationPath, timestamp: Date.now() }), "utf8");
+  } catch (error) {
+    logger.error("Could not stage recovery runtime files for guardian.", error);
+  }
+
+  const recoveryScript = path.join(recoveryDir, "repair.cjs");
+  const launchScript = fs.existsSync(recoveryScript) ? recoveryScript : script;
+
+  try {
+    const child = spawn(process.execPath, [launchScript, installationPath, logFile, recoveryDir], {
       detached: true,
       stdio: "ignore",
       windowsHide: true,

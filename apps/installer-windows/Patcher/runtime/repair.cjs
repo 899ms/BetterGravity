@@ -25,9 +25,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js
+// node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js
 var require_concat_map = __commonJS({
-  "../../node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js"(exports2, module2) {
+  "node_modules/.pnpm/concat-map@0.0.1/node_modules/concat-map/index.js"(exports2, module2) {
     module2.exports = function(xs, fn) {
       var res = [];
       for (var i = 0; i < xs.length; i++) {
@@ -43,9 +43,9 @@ var require_concat_map = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js
+// node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js
 var require_balanced_match = __commonJS({
-  "../../node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js"(exports2, module2) {
+  "node_modules/.pnpm/balanced-match@1.0.2/node_modules/balanced-match/index.js"(exports2, module2) {
     "use strict";
     module2.exports = balanced;
     function balanced(a, b, str) {
@@ -101,9 +101,9 @@ var require_balanced_match = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js
+// node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js
 var require_brace_expansion = __commonJS({
-  "../../node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js"(exports2, module2) {
+  "node_modules/.pnpm/brace-expansion@1.1.18/node_modules/brace-expansion/index.js"(exports2, module2) {
     var concatMap = require_concat_map();
     var balanced = require_balanced_match();
     module2.exports = expandTop;
@@ -339,12 +339,12 @@ var require_brace_expansion = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js
+// node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js
 var require_minimatch = __commonJS({
-  "../../node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js"(exports2, module2) {
+  "node_modules/.pnpm/minimatch@3.1.5/node_modules/minimatch/minimatch.js"(exports2, module2) {
     module2.exports = minimatch;
     minimatch.Minimatch = Minimatch;
-    var path4 = (function() {
+    var path5 = (function() {
       try {
         return require("path");
       } catch (e) {
@@ -352,7 +352,7 @@ var require_minimatch = __commonJS({
     })() || {
       sep: "/"
     };
-    minimatch.sep = path4.sep;
+    minimatch.sep = path5.sep;
     var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {};
     var expand = require_brace_expansion();
     var plTypes = {
@@ -441,8 +441,8 @@ var require_minimatch = __commonJS({
       assertValidPattern(pattern);
       if (!options) options = {};
       pattern = pattern.trim();
-      if (!options.allowWindowsEscape && path4.sep !== "/") {
-        pattern = pattern.split(path4.sep).join("/");
+      if (!options.allowWindowsEscape && path5.sep !== "/") {
+        pattern = pattern.split(path5.sep).join("/");
       }
       this.options = options;
       this.maxGlobstarRecursion = options.maxGlobstarRecursion !== void 0 ? options.maxGlobstarRecursion : 200;
@@ -813,8 +813,8 @@ var require_minimatch = __commonJS({
       if (this.empty) return f === "";
       if (f === "/" && partial) return true;
       var options = this.options;
-      if (path4.sep !== "/") {
-        f = f.split(path4.sep).join("/");
+      if (path5.sep !== "/") {
+        f = f.split(path5.sep).join("/");
       }
       f = f.split(slashSplit);
       this.debug(this.pattern, "split", f);
@@ -1011,9 +1011,9 @@ var require_minimatch = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js
 var require_wrapped_fs = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/wrapped-fs.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var fs2 = "electron" in process.versions ? require("original-fs") : require("fs");
@@ -1040,9 +1040,9 @@ var require_wrapped_fs = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js
 var require_integrity = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/integrity.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -1123,9 +1123,9 @@ var require_integrity = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js
 var require_filesystem = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/filesystem.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -1160,7 +1160,7 @@ var require_filesystem = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Filesystem = void 0;
     var os2 = __importStar(require("os"));
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var util_1 = require("util");
     var stream = __importStar(require("stream"));
     var integrity_1 = require_integrity();
@@ -1169,7 +1169,7 @@ var require_filesystem = __commonJS({
     var pipeline = (0, util_1.promisify)(stream.pipeline);
     var Filesystem = class {
       constructor(src) {
-        this.src = path4.resolve(src);
+        this.src = path5.resolve(src);
         this.header = { files: /* @__PURE__ */ Object.create(null) };
         this.headerSize = 0;
         this.offset = BigInt(0);
@@ -1189,7 +1189,7 @@ var require_filesystem = __commonJS({
       }
       searchNodeFromDirectory(p) {
         let json = this.header;
-        const dirs = p.split(path4.sep);
+        const dirs = p.split(path5.sep);
         for (const dir of dirs) {
           if (dir !== ".") {
             if ("files" in json) {
@@ -1205,12 +1205,12 @@ var require_filesystem = __commonJS({
         return json;
       }
       searchNodeFromPath(p) {
-        p = path4.relative(this.src, p);
+        p = path5.relative(this.src, p);
         if (!p) {
           return this.header;
         }
-        const name = path4.basename(p);
-        const node = this.searchNodeFromDirectory(path4.dirname(p));
+        const name = path5.basename(p);
+        const node = this.searchNodeFromDirectory(path5.dirname(p));
         if (!node.files) {
           node.files = /* @__PURE__ */ Object.create(null);
         }
@@ -1228,7 +1228,7 @@ var require_filesystem = __commonJS({
         return node.files;
       }
       async insertFile(p, streamGenerator, shouldUnpack, file, options = {}) {
-        const dirNode = this.searchNodeFromPath(path4.dirname(p));
+        const dirNode = this.searchNodeFromPath(path5.dirname(p));
         const node = this.searchNodeFromPath(p);
         if (shouldUnpack || dirNode.unpacked) {
           node.size = file.stat.size;
@@ -1239,8 +1239,8 @@ var require_filesystem = __commonJS({
         let size;
         const transformed = options.transform && options.transform(p);
         if (transformed) {
-          const tmpdir = await wrapped_fs_1.default.mkdtemp(path4.join(os2.tmpdir(), "asar-"));
-          const tmpfile = path4.join(tmpdir, path4.basename(p));
+          const tmpdir = await wrapped_fs_1.default.mkdtemp(path5.join(os2.tmpdir(), "asar-"));
+          const tmpfile = path5.join(tmpdir, path5.basename(p));
           const out = wrapped_fs_1.default.createWriteStream(tmpfile);
           await pipeline(streamGenerator(), transformed, out);
           file.transformed = {
@@ -1262,13 +1262,13 @@ var require_filesystem = __commonJS({
         }
         this.offset += BigInt(size);
       }
-      insertLink(p, shouldUnpack, parentPath = wrapped_fs_1.default.realpathSync(path4.dirname(p)), symlink = wrapped_fs_1.default.readlinkSync(p), src = wrapped_fs_1.default.realpathSync(this.src)) {
+      insertLink(p, shouldUnpack, parentPath = wrapped_fs_1.default.realpathSync(path5.dirname(p)), symlink = wrapped_fs_1.default.readlinkSync(p), src = wrapped_fs_1.default.realpathSync(this.src)) {
         const link = this.resolveLink(src, parentPath, symlink);
         if (link.startsWith("..")) {
           throw new Error(`${p}: file "${link}" links out of the package`);
         }
         const node = this.searchNodeFromPath(p);
-        const dirNode = this.searchNodeFromPath(path4.dirname(p));
+        const dirNode = this.searchNodeFromPath(path5.dirname(p));
         if (shouldUnpack || dirNode.unpacked) {
           node.unpacked = true;
         }
@@ -1276,8 +1276,8 @@ var require_filesystem = __commonJS({
         return link;
       }
       resolveLink(src, parentPath, symlink) {
-        const target = path4.join(parentPath, symlink);
-        const link = path4.relative(src, target);
+        const target = path5.join(parentPath, symlink);
+        const link = path5.relative(src, target);
         return link;
       }
       listFiles(options) {
@@ -1287,7 +1287,7 @@ var require_filesystem = __commonJS({
             return;
           }
           for (const [childPath, childMetadata] of Object.entries(metadata.files)) {
-            const fullPath = path4.join(basePath, childPath);
+            const fullPath = path5.join(basePath, childPath);
             const packState = "unpacked" in childMetadata && childMetadata.unpacked ? "unpack" : "pack  ";
             files.push(options && options.isPack ? `${packState} : ${fullPath}` : fullPath);
             fillFilesFromMetadata(fullPath, childMetadata);
@@ -1297,10 +1297,10 @@ var require_filesystem = __commonJS({
         return files;
       }
       getNode(p, followLinks = true) {
-        const node = this.searchNodeFromDirectory(path4.dirname(p));
-        const name = path4.basename(p);
+        const node = this.searchNodeFromDirectory(path5.dirname(p));
+        const name = path5.basename(p);
         if ("link" in node && followLinks) {
-          return this.getNode(path4.join(node.link, name));
+          return this.getNode(path5.join(node.link, name));
         }
         if (name) {
           return node.files[name];
@@ -1324,9 +1324,9 @@ var require_filesystem = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js
 var require_pickle = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/pickle.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Pickle = void 0;
@@ -1502,9 +1502,9 @@ var require_pickle = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js
 var require_disk = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/disk.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -1563,7 +1563,7 @@ var require_disk = __commonJS({
     exports2.uncacheFilesystem = uncacheFilesystem;
     exports2.uncacheAll = uncacheAll2;
     exports2.readFileSync = readFileSync;
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var wrapped_fs_1 = __importDefault(require_wrapped_fs());
     var pickle_1 = require_pickle();
     var filesystem_1 = require_filesystem();
@@ -1572,12 +1572,12 @@ var require_disk = __commonJS({
     var pipeline = (0, util_1.promisify)(stream.pipeline);
     var filesystemCache = /* @__PURE__ */ Object.create(null);
     async function copyFile(dest, src, filename) {
-      const srcFile = path4.join(src, filename);
-      const targetFile = path4.join(dest, filename);
+      const srcFile = path5.join(src, filename);
+      const targetFile = path5.join(dest, filename);
       const [content, stats] = await Promise.all([
         wrapped_fs_1.default.readFile(srcFile),
         wrapped_fs_1.default.stat(srcFile),
-        wrapped_fs_1.default.mkdirp(path4.dirname(targetFile))
+        wrapped_fs_1.default.mkdirp(path5.dirname(targetFile))
       ]);
       return wrapped_fs_1.default.writeFile(targetFile, content, { mode: stats.mode });
     }
@@ -1592,7 +1592,7 @@ var require_disk = __commonJS({
       const { files, links } = lists;
       for (const file of files) {
         if (file.unpack) {
-          const filename = path4.relative(filesystem.getRootPath(), file.filename);
+          const filename = path5.relative(filesystem.getRootPath(), file.filename);
           await copyFile(`${dest}.unpacked`, filesystem.getRootPath(), filename);
         } else {
           const transformed = metadata[file.filename].transformed;
@@ -1601,7 +1601,7 @@ var require_disk = __commonJS({
         }
       }
       for (const file of links.filter((f) => f.unpack)) {
-        const filename = path4.relative(filesystem.getRootPath(), file.filename);
+        const filename = path5.relative(filesystem.getRootPath(), file.filename);
         const link = await wrapped_fs_1.default.readlink(file.filename);
         await createSymlink(dest, filename, link);
       }
@@ -1621,8 +1621,8 @@ var require_disk = __commonJS({
           _d = false;
           const file = _c;
           if (file.unpack) {
-            const targetFile = path4.join(`${dest}.unpacked`, file.filename);
-            await wrapped_fs_1.default.mkdirp(path4.dirname(targetFile));
+            const targetFile = path5.join(`${dest}.unpacked`, file.filename);
+            await wrapped_fs_1.default.mkdirp(path5.dirname(targetFile));
             const writeStream = wrapped_fs_1.default.createWriteStream(targetFile, { mode: file.mode });
             await pipeline(file.streamGenerator(), writeStream);
           } else {
@@ -1690,7 +1690,7 @@ var require_disk = __commonJS({
         return buffer;
       }
       if (info.unpacked) {
-        buffer = wrapped_fs_1.default.readFileSync(path4.join(`${filesystem.getRootPath()}.unpacked`, filename));
+        buffer = wrapped_fs_1.default.readFileSync(path5.join(`${filesystem.getRootPath()}.unpacked`, filename));
       } else {
         const fd = wrapped_fs_1.default.openSync(filesystem.getRootPath(), "r");
         try {
@@ -1718,8 +1718,8 @@ var require_disk = __commonJS({
       return out;
     }
     async function createSymlink(dest, filepath, link) {
-      await wrapped_fs_1.default.mkdirp(path4.join(`${dest}.unpacked`, path4.dirname(filepath)));
-      await wrapped_fs_1.default.symlink(link, path4.join(`${dest}.unpacked`, filepath)).catch(async (error) => {
+      await wrapped_fs_1.default.mkdirp(path5.join(`${dest}.unpacked`, path5.dirname(filepath)));
+      await wrapped_fs_1.default.symlink(link, path5.join(`${dest}.unpacked`, filepath)).catch(async (error) => {
         if (error.code === "EPERM" && error.syscall === "symlink") {
           throw new Error("Could not create symlinks for unpacked assets. On Windows, consider activating Developer Mode to allow non-admin users to create symlinks by following the instructions at https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development.");
         }
@@ -1729,9 +1729,9 @@ var require_disk = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js
+// node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js
 var require_old = __commonJS({
-  "../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js"(exports2) {
+  "node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/old.js"(exports2) {
     var pathModule = require("path");
     var isWindows = process.platform === "win32";
     var fs2 = require("fs");
@@ -1929,9 +1929,9 @@ var require_old = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js
+// node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js
 var require_fs = __commonJS({
-  "../../node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js"(exports2, module2) {
+  "node_modules/.pnpm/fs.realpath@1.0.0/node_modules/fs.realpath/index.js"(exports2, module2) {
     module2.exports = realpath;
     realpath.realpath = realpath;
     realpath.sync = realpathSync;
@@ -1988,9 +1988,9 @@ var require_fs = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js
+// node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js
 var require_inherits_browser = __commonJS({
-  "../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js"(exports2, module2) {
+  "node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js"(exports2, module2) {
     if (typeof Object.create === "function") {
       module2.exports = function inherits(ctor, superCtor) {
         if (superCtor) {
@@ -2020,9 +2020,9 @@ var require_inherits_browser = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js
+// node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js
 var require_inherits = __commonJS({
-  "../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js"(exports2, module2) {
+  "node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js"(exports2, module2) {
     try {
       util = require("util");
       if (typeof util.inherits !== "function") throw "";
@@ -2034,16 +2034,16 @@ var require_inherits = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js
+// node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js
 var require_path_is_absolute = __commonJS({
-  "../../node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js"(exports2, module2) {
+  "node_modules/.pnpm/path-is-absolute@1.0.1/node_modules/path-is-absolute/index.js"(exports2, module2) {
     "use strict";
-    function posix(path4) {
-      return path4.charAt(0) === "/";
+    function posix(path5) {
+      return path5.charAt(0) === "/";
     }
-    function win32(path4) {
+    function win32(path5) {
       var splitDeviceRe = /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/]+[^\\\/]+)?([\\\/])?([\s\S]*?)$/;
-      var result = splitDeviceRe.exec(path4);
+      var result = splitDeviceRe.exec(path5);
       var device = result[1] || "";
       var isUnc = Boolean(device && device.charAt(1) !== ":");
       return Boolean(result[2] || isUnc);
@@ -2054,9 +2054,9 @@ var require_path_is_absolute = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js
+// node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js
 var require_common = __commonJS({
-  "../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js"(exports2) {
+  "node_modules/.pnpm/glob@7.2.3/node_modules/glob/common.js"(exports2) {
     exports2.setopts = setopts;
     exports2.ownProp = ownProp;
     exports2.makeAbs = makeAbs;
@@ -2068,7 +2068,7 @@ var require_common = __commonJS({
       return Object.prototype.hasOwnProperty.call(obj, field);
     }
     var fs2 = require("fs");
-    var path4 = require("path");
+    var path5 = require("path");
     var minimatch = require_minimatch();
     var isAbsolute = require_path_is_absolute();
     var Minimatch = minimatch.Minimatch;
@@ -2133,11 +2133,11 @@ var require_common = __commonJS({
       if (!ownProp(options, "cwd"))
         self.cwd = cwd;
       else {
-        self.cwd = path4.resolve(options.cwd);
+        self.cwd = path5.resolve(options.cwd);
         self.changedCwd = self.cwd !== cwd;
       }
-      self.root = options.root || path4.resolve(self.cwd, "/");
-      self.root = path4.resolve(self.root);
+      self.root = options.root || path5.resolve(self.cwd, "/");
+      self.root = path5.resolve(self.root);
       if (process.platform === "win32")
         self.root = self.root.replace(/\\/g, "/");
       self.cwdAbs = isAbsolute(self.cwd) ? self.cwd : makeAbs(self, self.cwd);
@@ -2219,38 +2219,38 @@ var require_common = __commonJS({
     function makeAbs(self, f) {
       var abs = f;
       if (f.charAt(0) === "/") {
-        abs = path4.join(self.root, f);
+        abs = path5.join(self.root, f);
       } else if (isAbsolute(f) || f === "") {
         abs = f;
       } else if (self.changedCwd) {
-        abs = path4.resolve(self.cwd, f);
+        abs = path5.resolve(self.cwd, f);
       } else {
-        abs = path4.resolve(f);
+        abs = path5.resolve(f);
       }
       if (process.platform === "win32")
         abs = abs.replace(/\\/g, "/");
       return abs;
     }
-    function isIgnored(self, path5) {
+    function isIgnored(self, path6) {
       if (!self.ignore.length)
         return false;
       return self.ignore.some(function(item) {
-        return item.matcher.match(path5) || !!(item.gmatcher && item.gmatcher.match(path5));
+        return item.matcher.match(path6) || !!(item.gmatcher && item.gmatcher.match(path6));
       });
     }
-    function childrenIgnored(self, path5) {
+    function childrenIgnored(self, path6) {
       if (!self.ignore.length)
         return false;
       return self.ignore.some(function(item) {
-        return !!(item.gmatcher && item.gmatcher.match(path5));
+        return !!(item.gmatcher && item.gmatcher.match(path6));
       });
     }
   }
 });
 
-// ../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js
+// node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js
 var require_sync = __commonJS({
-  "../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js"(exports2, module2) {
+  "node_modules/.pnpm/glob@7.2.3/node_modules/glob/sync.js"(exports2, module2) {
     module2.exports = globSync;
     globSync.GlobSync = GlobSync;
     var rp = require_fs();
@@ -2258,7 +2258,7 @@ var require_sync = __commonJS({
     var Minimatch = minimatch.Minimatch;
     var Glob = require_glob().Glob;
     var util = require("util");
-    var path4 = require("path");
+    var path5 = require("path");
     var assert = require("assert");
     var isAbsolute = require_path_is_absolute();
     var common = require_common();
@@ -2387,7 +2387,7 @@ var require_sync = __commonJS({
               e = prefix + e;
           }
           if (e.charAt(0) === "/" && !this.nomount) {
-            e = path4.join(this.root, e);
+            e = path5.join(this.root, e);
           }
           this._emitMatch(index, e);
         }
@@ -2538,9 +2538,9 @@ var require_sync = __commonJS({
       if (prefix && isAbsolute(prefix) && !this.nomount) {
         var trail = /[\/\\]$/.test(prefix);
         if (prefix.charAt(0) === "/") {
-          prefix = path4.join(this.root, prefix);
+          prefix = path5.join(this.root, prefix);
         } else {
-          prefix = path4.resolve(this.root, prefix);
+          prefix = path5.resolve(this.root, prefix);
           if (trail)
             prefix += "/";
         }
@@ -2603,9 +2603,9 @@ var require_sync = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js
+// node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js
 var require_wrappy = __commonJS({
-  "../../node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js"(exports2, module2) {
+  "node_modules/.pnpm/wrappy@1.0.2/node_modules/wrappy/wrappy.js"(exports2, module2) {
     module2.exports = wrappy;
     function wrappy(fn, cb) {
       if (fn && cb) return wrappy(fn)(cb);
@@ -2633,9 +2633,9 @@ var require_wrappy = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/once@1.4.0/node_modules/once/once.js
+// node_modules/.pnpm/once@1.4.0/node_modules/once/once.js
 var require_once = __commonJS({
-  "../../node_modules/.pnpm/once@1.4.0/node_modules/once/once.js"(exports2, module2) {
+  "node_modules/.pnpm/once@1.4.0/node_modules/once/once.js"(exports2, module2) {
     var wrappy = require_wrappy();
     module2.exports = wrappy(once);
     module2.exports.strict = wrappy(onceStrict);
@@ -2677,9 +2677,9 @@ var require_once = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js
+// node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js
 var require_inflight = __commonJS({
-  "../../node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js"(exports2, module2) {
+  "node_modules/.pnpm/inflight@1.0.6/node_modules/inflight/inflight.js"(exports2, module2) {
     var wrappy = require_wrappy();
     var reqs = /* @__PURE__ */ Object.create(null);
     var once = require_once();
@@ -2723,16 +2723,16 @@ var require_inflight = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js
+// node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js
 var require_glob = __commonJS({
-  "../../node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js"(exports2, module2) {
+  "node_modules/.pnpm/glob@7.2.3/node_modules/glob/glob.js"(exports2, module2) {
     module2.exports = glob;
     var rp = require_fs();
     var minimatch = require_minimatch();
     var Minimatch = minimatch.Minimatch;
     var inherits = require_inherits();
     var EE = require("events").EventEmitter;
-    var path4 = require("path");
+    var path5 = require("path");
     var assert = require("assert");
     var isAbsolute = require_path_is_absolute();
     var globSync = require_sync();
@@ -3014,7 +3014,7 @@ var require_glob = __commonJS({
               e = prefix + e;
           }
           if (e.charAt(0) === "/" && !this.nomount) {
-            e = path4.join(this.root, e);
+            e = path5.join(this.root, e);
           }
           this._emitMatch(index, e);
         }
@@ -3203,9 +3203,9 @@ var require_glob = __commonJS({
       if (prefix && isAbsolute(prefix) && !this.nomount) {
         var trail = /[\/\\]$/.test(prefix);
         if (prefix.charAt(0) === "/") {
-          prefix = path4.join(this.root, prefix);
+          prefix = path5.join(this.root, prefix);
         } else {
-          prefix = path4.resolve(this.root, prefix);
+          prefix = path5.resolve(this.root, prefix);
           if (trail)
             prefix += "/";
         }
@@ -3279,9 +3279,9 @@ var require_glob = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js
 var require_crawlfs = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/crawlfs.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -3319,7 +3319,7 @@ var require_crawlfs = __commonJS({
     var util_1 = require("util");
     var glob_1 = require_glob();
     var wrapped_fs_1 = __importDefault(require_wrapped_fs());
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var glob = (0, util_1.promisify)(glob_1.glob);
     async function determineFileType(filename) {
       const stat = await wrapped_fs_1.default.lstat(filename);
@@ -3351,7 +3351,7 @@ var require_crawlfs = __commonJS({
             return true;
           }
           const isFileWithinSymlinkDir = filename.startsWith(link);
-          const relativePath = path4.relative(link, path4.dirname(filename));
+          const relativePath = path5.relative(link, path5.dirname(filename));
           return !isFileWithinSymlinkDir || relativePath.startsWith("..");
         });
       });
@@ -3360,9 +3360,9 @@ var require_crawlfs = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js
+// node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js
 var require_asar = __commonJS({
-  "../../node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js"(exports2) {
+  "node_modules/.pnpm/@electron+asar@3.4.1/node_modules/@electron/asar/lib/asar.js"(exports2) {
     "use strict";
     var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
       if (k2 === void 0) k2 = k;
@@ -3406,7 +3406,7 @@ var require_asar = __commonJS({
     exports2.extractAll = extractAll;
     exports2.uncache = uncache;
     exports2.uncacheAll = uncacheAll2;
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var minimatch_1 = __importDefault(require_minimatch());
     var wrapped_fs_1 = __importDefault(require_wrapped_fs());
     var filesystem_1 = require_filesystem();
@@ -3419,7 +3419,7 @@ var require_asar = __commonJS({
         }
         return true;
       } else {
-        return unpackDirs.some((unpackDir) => dirPath.startsWith(unpackDir) && !path4.relative(unpackDir, dirPath).startsWith(".."));
+        return unpackDirs.some((unpackDir) => dirPath.startsWith(unpackDir) && !path5.relative(unpackDir, dirPath).startsWith(".."));
       }
     }
     async function createPackage(src, dest) {
@@ -3433,10 +3433,10 @@ var require_asar = __commonJS({
       return createPackageFromFiles(src, dest, filenames, metadata, options);
     }
     async function createPackageFromFiles(src, dest, filenames, metadata = {}, options = {}) {
-      src = path4.normalize(src);
-      dest = path4.normalize(dest);
+      src = path5.normalize(src);
+      dest = path5.normalize(dest);
       filenames = filenames.map(function(filename) {
-        return path4.normalize(filename);
+        return path5.normalize(filename);
       });
       const filesystem = new filesystem_1.Filesystem(src);
       const files = [];
@@ -3456,10 +3456,10 @@ var require_asar = __commonJS({
         });
         const ordering = [];
         for (const file of orderingFiles) {
-          const pathComponents = file.split(path4.sep);
+          const pathComponents = file.split(path5.sep);
           let str = src;
           for (const pathComponent of pathComponents) {
-            str = path4.join(str, pathComponent);
+            str = path5.join(str, pathComponent);
             ordering.push(str);
           }
         }
@@ -3502,15 +3502,15 @@ var require_asar = __commonJS({
         let shouldUnpack;
         switch (file.type) {
           case "directory":
-            shouldUnpack = shouldUnpackPath(path4.relative(src, filename), void 0, options.unpackDir);
+            shouldUnpack = shouldUnpackPath(path5.relative(src, filename), void 0, options.unpackDir);
             filesystem.insertDirectory(filename, shouldUnpack);
             break;
           case "file":
-            shouldUnpack = shouldUnpackPath(path4.relative(src, path4.dirname(filename)), options.unpack, options.unpackDir);
+            shouldUnpack = shouldUnpackPath(path5.relative(src, path5.dirname(filename)), options.unpack, options.unpackDir);
             files.push({ filename, unpack: shouldUnpack });
             return filesystem.insertFile(filename, () => wrapped_fs_1.default.createReadStream(filename), shouldUnpack, file, options);
           case "link":
-            shouldUnpack = shouldUnpackPath(path4.relative(src, filename), options.unpack, options.unpackDir);
+            shouldUnpack = shouldUnpackPath(path5.relative(src, filename), options.unpack, options.unpackDir);
             links.push({ filename, unpack: shouldUnpack });
             filesystem.insertLink(filename, shouldUnpack);
             break;
@@ -3518,7 +3518,7 @@ var require_asar = __commonJS({
         return Promise.resolve();
       };
       const insertsDone = async function() {
-        await wrapped_fs_1.default.mkdirp(path4.dirname(dest));
+        await wrapped_fs_1.default.mkdirp(path5.dirname(dest));
         return disk.writeFilesystem(dest, filesystem, { files, links }, metadata);
       };
       const names = filenamesSorted.slice();
@@ -3538,7 +3538,7 @@ var require_asar = __commonJS({
       const links = [];
       const handleFile = async function(stream) {
         const { path: destinationPath, type } = stream;
-        const filename = path4.normalize(destinationPath);
+        const filename = path5.normalize(destinationPath);
         switch (type) {
           case "directory":
             filesystem.insertDirectory(filename, stream.unpacked);
@@ -3563,13 +3563,13 @@ var require_asar = __commonJS({
               mode: stream.stat.mode,
               unpack: stream.unpacked
             });
-            filesystem.insertLink(filename, stream.unpacked, path4.dirname(filename), stream.symlink, src);
+            filesystem.insertLink(filename, stream.unpacked, path5.dirname(filename), stream.symlink, src);
             break;
         }
         return Promise.resolve();
       };
       const insertsDone = async function() {
-        await wrapped_fs_1.default.mkdirp(path4.dirname(dest));
+        await wrapped_fs_1.default.mkdirp(path5.dirname(dest));
         return disk.streamFilesystem(dest, filesystem, { files, links });
       };
       const streamQueue = streams.slice();
@@ -3608,23 +3608,23 @@ var require_asar = __commonJS({
       const extractionErrors = [];
       for (const fullPath of filenames) {
         const filename = fullPath.substr(1);
-        const destFilename = path4.join(dest, filename);
+        const destFilename = path5.join(dest, filename);
         const file = filesystem.getFile(filename, followLinks);
-        if (path4.relative(dest, destFilename).startsWith("..")) {
+        if (path5.relative(dest, destFilename).startsWith("..")) {
           throw new Error(`${fullPath}: file "${destFilename}" writes out of the package`);
         }
         if ("files" in file) {
           wrapped_fs_1.default.mkdirpSync(destFilename);
         } else if ("link" in file) {
-          const linkSrcPath = path4.dirname(path4.join(dest, file.link));
-          const linkDestPath = path4.dirname(destFilename);
-          const relativePath = path4.relative(linkDestPath, linkSrcPath);
+          const linkSrcPath = path5.dirname(path5.join(dest, file.link));
+          const linkDestPath = path5.dirname(destFilename);
+          const relativePath = path5.relative(linkDestPath, linkSrcPath);
           try {
             wrapped_fs_1.default.unlinkSync(destFilename);
           } catch (_a) {
           }
-          const linkTo = path4.join(relativePath, path4.basename(file.link));
-          if (path4.relative(dest, linkSrcPath).startsWith("..")) {
+          const linkTo = path5.join(relativePath, path5.basename(file.link));
+          if (path5.relative(dest, linkSrcPath).startsWith("..")) {
             throw new Error(`${fullPath}: file "${file.link}" links out of the package to "${linkSrcPath}"`);
           }
           wrapped_fs_1.default.symlinkSync(linkTo, destFilename);
@@ -3666,7 +3666,10 @@ var require_asar = __commonJS({
   }
 });
 
-// ../../packages/patcher/src/native/fs.ts
+// packages/patcher/src/native/repair.ts
+var import_node_path4 = __toESM(require("node:path"), 1);
+
+// packages/patcher/src/native/fs.ts
 var import_node_fs = __toESM(require("node:fs"), 1);
 function resolveFileSystem() {
   if (!("electron" in process.versions)) return import_node_fs.default;
@@ -3678,10 +3681,10 @@ function resolveFileSystem() {
 }
 var fs = resolveFileSystem();
 
-// ../../packages/patcher/src/native/index.ts
+// packages/patcher/src/native/index.ts
 var import_node_path3 = __toESM(require("node:path"), 1);
 
-// ../../packages/shared/src/index.ts
+// packages/shared/src/index.ts
 var BETTERGRAVITY_VERSION = "3.0.0";
 var SUPPORTED_HOST_MAJOR = 2;
 function isSupportedHostVersion(version) {
@@ -3690,15 +3693,15 @@ function isSupportedHostVersion(version) {
   return Number.parseInt(major ?? "", 10) === SUPPORTED_HOST_MAJOR;
 }
 
-// ../../packages/patcher/src/native/bootstrap.ts
+// packages/patcher/src/native/bootstrap.ts
 var import_node_os = __toESM(require("node:os"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
 
-// ../../packages/patcher/src/native/archive.ts
+// packages/patcher/src/native/archive.ts
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_asar = __toESM(require_asar(), 1);
 
-// ../../packages/patcher/src/native/paths.ts
+// packages/patcher/src/native/paths.ts
 var import_node_path = __toESM(require("node:path"), 1);
 var RUNTIME_DIRECTORY_NAME = ".bettergravity";
 var MARKER_NAME = ".bettergravity.json";
@@ -3812,7 +3815,7 @@ function installationPaths(targetRoot) {
   };
 }
 
-// ../../packages/patcher/src/native/archive.ts
+// packages/patcher/src/native/archive.ts
 function readJsonFromArchive(archivePath, entry) {
   import_asar.default.uncache(archivePath);
   return JSON.parse(import_asar.default.extractFile(archivePath, entry).toString("utf8"));
@@ -3849,7 +3852,7 @@ async function createArchive(sourceDirectory, destination) {
   await import_asar.default.createPackage(sourceDirectory, destination);
 }
 
-// ../../packages/patcher/src/native/bootstrap.ts
+// packages/patcher/src/native/bootstrap.ts
 function bootstrapSource(version = BETTERGRAVITY_VERSION) {
   return [
     `"use strict";`,
@@ -3906,7 +3909,7 @@ async function createBootstrapArchive(destination, host, originalAsarSha256) {
   }
 }
 
-// ../../packages/patcher/src/native/process.ts
+// packages/patcher/src/native/process.ts
 var import_node_child_process = require("node:child_process");
 var GRACEFUL_SHUTDOWN_TIMEOUT_MS = 5e3;
 var POLL_INTERVAL_MS = 250;
@@ -3990,8 +3993,8 @@ async function closeAntigravity(installationPath, onProgress) {
   }
 }
 
-// ../../packages/patcher/src/native/index.ts
-var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs"];
+// packages/patcher/src/native/index.ts
+var RUNTIME_FILES = ["main.cjs", "preload.cjs", "repair.cjs", "overlay.html"];
 var MAX_RETAINED_BACKUPS = 5;
 function inspectInstallation(installationPath) {
   if (isAntigravityIde(installationPath)) {
@@ -4127,7 +4130,7 @@ async function runOperation(operation, installationPath, options, onProgress = (
   return { installation: after, message: messages[operation] };
 }
 
-// ../../packages/patcher/src/native/repair.ts
+// packages/patcher/src/native/repair.ts
 var defaults = {
   exitTimeoutMs: 5 * 6e4,
   watchTimeoutMs: 10 * 6e4,
@@ -4163,24 +4166,49 @@ async function guard(options) {
   const watchDeadline = now() + watchTimeoutMs;
   let repatchDeadline;
   let waitingAnnounced = false;
+  const candidateRecovery = options.recoverySource || (options.runtimeSource && fs.existsSync(options.runtimeSource) ? options.runtimeSource : void 0);
+  const hasRecovery = Boolean(
+    candidateRecovery && fs.existsSync(candidateRecovery) && RUNTIME_FILES.every((file) => fs.existsSync(import_node_path4.default.join(candidateRecovery, file)))
+  );
+  let matchesGuardedTarget = true;
+  if (hasRecovery) {
+    try {
+      const markerFile = import_node_path4.default.join(candidateRecovery, "guardian-pending.json");
+      if (fs.existsSync(markerFile)) {
+        const marker = JSON.parse(fs.readFileSync(markerFile, "utf8"));
+        if (marker?.installationPath) {
+          matchesGuardedTarget = import_node_path4.default.resolve(marker.installationPath) === import_node_path4.default.resolve(installationPath);
+        }
+      }
+    } catch {
+    }
+  }
   const settled = (kind) => kind === "patched" ? { kind: "already-patched" } : { kind: "no-update" };
   for (; ; ) {
     const state = inspectInstallation(installationPath);
-    const needsRepatch = state.kind === "needs-repatch" && state.nativePatchAvailable;
+    const isGuardedUpdate = state.kind === "needs-repatch" || state.kind === "detected" && hasRecovery && matchesGuardedTarget;
+    const needsRepatch = isGuardedUpdate && state.nativePatchAvailable;
     if (needsRepatch && repatchDeadline === void 0) {
       repatchDeadline = now() + repatchTimeoutMs;
-      log(`Antigravity ${state.antigravityVersion} replaced the patch.`);
+      log(`Antigravity ${state.antigravityVersion ?? "unknown"} replaced the patch.`);
     }
     const running = isHostRunning(installationPath);
     if (needsRepatch && !running) {
       log("Reapplying.");
       try {
-        const runtimeSource = installationPaths(installationPath).runtimeCode;
+        const runtimeSource = hasRecovery && matchesGuardedTarget ? candidateRecovery : options.runtimeSource ?? installationPaths(installationPath).runtimeCode;
         await runOperation("update", installationPath, {
           runtimeSource,
           ...options.closeHost ? { closeHost: options.closeHost } : {}
         });
         log("Reapplied successfully.");
+        if (candidateRecovery) {
+          try {
+            const markerFile = import_node_path4.default.join(candidateRecovery, "guardian-pending.json");
+            if (fs.existsSync(markerFile)) fs.unlinkSync(markerFile);
+          } catch {
+          }
+        }
         return { kind: "repatched", version: state.antigravityVersion };
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
@@ -4212,9 +4240,16 @@ async function guard(options) {
 async function main(argv) {
   const installationPath = argv[0];
   const logFile = argv[1];
+  let recoverySource = argv[2];
   if (!installationPath) {
-    console.error("Usage: repair.cjs <installationPath> [logFile]");
+    console.error("Usage: repair.cjs <installationPath> [logFile] [recoverySource]");
     return 2;
+  }
+  if (!recoverySource && logFile) {
+    const candidate = import_node_path4.default.join(import_node_path4.default.dirname(logFile), "recovery");
+    if (fs.existsSync(candidate)) {
+      recoverySource = candidate;
+    }
   }
   const log = (message) => {
     const line = `[${(/* @__PURE__ */ new Date()).toISOString()}] guardian: ${message}
@@ -4226,7 +4261,7 @@ async function main(argv) {
     }
   };
   try {
-    const outcome = await guard({ installationPath, log });
+    const outcome = await guard({ installationPath, log, ...recoverySource ? { recoverySource } : {} });
     return outcome.kind === "failed" ? 1 : 0;
   } catch (error) {
     log(`unexpected failure: ${error instanceof Error ? error.message : String(error)}`);
@@ -4234,7 +4269,7 @@ async function main(argv) {
   }
 }
 
-// ../../packages/patcher/src/native/repair-cli.ts
+// packages/patcher/src/native/repair-cli.ts
 void main(process.argv.slice(2)).then((code) => {
   process.exitCode = code;
 });
