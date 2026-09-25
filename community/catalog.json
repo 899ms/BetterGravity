@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-20T10:45:25.314Z",
+  "generatedAt": "2026-09-24T22:10:46.074Z",
   "entries": [
     {
       "id": "catppuccin-accent",
       "kind": "plugin",
       "name": "Catppuccin Accent",
       "description": "Context-aware dynamic accent color switcher for Catppuccin themes. Only appears when Catppuccin is active.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "RedPanda-Craft",
       "source": "https://github.com/YashjitPal/BetterGravity",
       "path": "community/plugins/catppuccin-accent",
-      "bytes": 26285,
+      "bytes": 34712,
       "files": [
         {
           "name": "index.js",
-          "bytes": 19625,
-          "sha256": "c1442f67915a8bf588695accfea2cb34279b647f3ef401614c721143990d3705"
+          "bytes": 28052,
+          "sha256": "f9c3f9c7f5598ff7429e64b3df43923c5e09d4955db1486da465713b9279e549"
         },
         {
           "name": "plugin.json",
           "bytes": 337,
-          "sha256": "07e49e805f4512b75eb00a379d8676ba2cdfd9e1433d9619fe4c992764c9ac32"
+          "sha256": "b1cd58abae9be2aea4436e3dedfb9e74c4772ed8fe634f92eadb04de46daa29a"
         },
         {
           "name": "README.md",
@@ -1018,16 +1018,16 @@
       "kind": "theme",
       "name": "Catppuccin Turbo",
       "description": "Ultra-fast, host-aligned Catppuccin theme for Antigravity 2.0 / BetterGravity 3.0 with Mocha & Latte support.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "RedPanda-Craft",
       "source": "https://github.com/catppuccin/catppuccin",
       "path": "community/themes/catppuccin-turbo.css",
-      "bytes": 46277,
+      "bytes": 48804,
       "files": [
         {
           "name": "catppuccin-turbo.css",
-          "bytes": 46277,
-          "sha256": "c05e4867a2b982a917e74642d835cb27c11bfa5ac699a77c9a307718b038a17b"
+          "bytes": 48804,
+          "sha256": "d4d312ba163d7955778202cbb8e1fdbefde7145e615e9638bc6d31deee269eb1"
         }
       ]
     },

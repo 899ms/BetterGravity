@@ -2,7 +2,7 @@
  * @name        Catppuccin Turbo
  * @description Ultra-fast, host-aligned Catppuccin theme for Antigravity 2.0 / BetterGravity 3.0 with Mocha & Latte support.
  * @author      RedPanda-Craft
- * @version     2.0.0
+ * @version     2.0.1
  * @source      https://github.com/catppuccin/catppuccin
  */
 
@@ -346,18 +346,22 @@ pre {
    5. Precision Component Controls & Micro-Interactions
    ========================================================================== */
 
-/* 5.1 Native Input Box Container (Applies outside Gemini-app mode) */
-body:not(.gemini-app-loaded) [data-testid="agent-input-box"] {
-  background-color: var(--ctp-mantle) !important;
-  border: 1px solid var(--ctp-surface0) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
-  transition: border-color 150ms ease, box-shadow 150ms ease !important;
+/* 5.1 Native Input Box Container (Pure transparent layout wrapper, eliminate double-box nesting) */
+body:not(.gemini-app-loaded) [data-testid="agent-input-box"],
+[data-testid="agent-input-box"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: none !important;
 }
 
-body:not(.gemini-app-loaded) [data-testid="agent-input-box"]:focus-within {
-  border-color: var(--catppuccin-accent) !important;
-  box-shadow: 0 4px 20px var(--catppuccin-accent-glow) !important;
+body:not(.gemini-app-loaded) [data-testid="agent-input-box"]:focus-within,
+[data-testid="agent-input-box"]:focus-within {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 /* 5.2 Send Button Micro-Interactions (Active & Disabled) */
@@ -448,7 +452,8 @@ div:has(> button[aria-label="Go Back"]),
 /* Protect topbar & sidebar paw buttons and accent palette triggers */
 [data-bettergravity-button="Pet"],
 [data-bettergravity-button="Pets"],
-[data-bettergravity-button="Accent"] {
+[data-bettergravity-button="Accent"],
+[data-bettergravity-button="Voyager"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -468,16 +473,25 @@ div:has(> button[aria-label="Go Back"]),
   fill: currentColor !important;
 }
 
+[data-bettergravity-button="Voyager"] > svg {
+  width: 21px !important;
+  height: 21px !important;
+  flex-shrink: 0 !important;
+  fill: currentColor !important;
+}
+
 [data-bettergravity-button="Pet"]:hover,
 [data-bettergravity-button="Pets"]:hover,
-[data-bettergravity-button="Accent"]:hover {
+[data-bettergravity-button="Accent"]:hover,
+[data-bettergravity-button="Voyager"]:hover {
   background-color: var(--bettergravity-row-hover) !important;
   color: var(--catppuccin-accent) !important;
 }
 
 [data-bettergravity-button="Pet"][aria-pressed="true"],
 [data-bettergravity-button="Pets"][aria-pressed="true"],
-[data-bettergravity-button="Accent"][aria-pressed="true"] {
+[data-bettergravity-button="Accent"][aria-pressed="true"],
+[data-bettergravity-button="Voyager"][aria-pressed="true"] {
   background-color: var(--ctp-surface0) !important;
   color: var(--catppuccin-accent) !important;
 }
@@ -501,14 +515,40 @@ div:has(> button[aria-label="Go Back"]),
 }
 
 .bg-timeline-rail {
-  background: rgba(24, 24, 37, 0.88) !important;
-  border: 1px solid var(--ctp-surface0) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
-.bg-timeline-rail:hover,
+.bg-timeline-rail:hover {
+  background: rgba(24, 24, 37, 0.96) !important;
+  border-color: var(--ctp-surface1) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1) 0.28s,
+              padding 200ms ease 0.28s,
+              background-color 180ms ease 0.28s,
+              border-color 180ms ease 0.28s,
+              box-shadow 200ms ease 0.28s,
+              backdrop-filter 180ms ease 0.28s,
+              -webkit-backdrop-filter 180ms ease 0.28s;
+}
+
 .bg-timeline-rail.bg-expanded {
   background: rgba(24, 24, 37, 0.96) !important;
   border-color: var(--ctp-surface1) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1) 0s,
+              padding 200ms ease 0s,
+              background-color 180ms ease 0s,
+              border-color 180ms ease 0s,
+              box-shadow 200ms ease 0s;
 }
 
 /* Timeline node health colors mapped to Catppuccin accents */
@@ -940,14 +980,40 @@ body.ctp-latte-mode [data-testid="conversation-row-sidebar"]:hover:not([data-sel
    8.5 Voyager Branch Tree HUD (Maintains authentic dark semi-transparent space HUD across all flavors)
    -------------------------------------------------------------------------- */
 :root:root body.ctp-latte-mode .bg-timeline-rail {
-  background: rgba(24, 24, 37, 0.88) !important;
-  border: 1px solid var(--ctp-surface0) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
-:root:root body.ctp-latte-mode .bg-timeline-rail:hover,
+:root:root body.ctp-latte-mode .bg-timeline-rail:hover {
+  background: rgba(24, 24, 37, 0.96) !important;
+  border-color: var(--ctp-surface1) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1) 0.28s,
+              padding 200ms ease 0.28s,
+              background-color 180ms ease 0.28s,
+              border-color 180ms ease 0.28s,
+              box-shadow 200ms ease 0.28s,
+              backdrop-filter 180ms ease 0.28s,
+              -webkit-backdrop-filter 180ms ease 0.28s;
+}
+
 :root:root body.ctp-latte-mode .bg-timeline-rail.bg-expanded {
   background: rgba(24, 24, 37, 0.96) !important;
   border-color: var(--ctp-surface1) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1) 0s,
+              padding 200ms ease 0s,
+              background-color 180ms ease 0s,
+              border-color 180ms ease 0s,
+              box-shadow 200ms ease 0s;
 }
 
 :root:root body.ctp-latte-mode :is(.bg-timeline-card, .bg-turn-details) {
